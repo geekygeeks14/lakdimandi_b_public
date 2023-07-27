@@ -1170,7 +1170,7 @@ getDashboardData: async (req, res) => {
       console.log(err);
       return res.status(400).json({
         success: false,
-        message: "Error while getting reciever deatil.",
+        message: "Error while getting reciever deatils.",
         error: err.message,
       });
     }
