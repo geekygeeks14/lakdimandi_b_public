@@ -845,7 +845,7 @@ getDashboardData: async (req, res) => {
       let roleRestriction=['TOPADMIN','ADMIN','SUPER_ADMIN']
       if(roleName && roleName==='TOPADMIN'){
         companyParam= {}
-        roleRestriction=['ADMIN','SUPER_ADMIN
+        roleRestriction=['ADMIN','SUPER_ADMIN']
       }
       if(roleName && (roleName==='INSTANCE ADMIN' || roleName==='ADMIN')){
         companyParam= {'userInfo.companyId': companyId}
