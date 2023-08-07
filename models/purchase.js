@@ -7,7 +7,10 @@ const purchaseSchema = new mongoose.Schema({
   purchaseProduct:{
     type: JSON,
   },
-  workDetail:{
+  unLoadingWorkDetail:{
+    type: JSON,
+  },
+  loadingWorkDetail:{
     type: JSON,
   },
   totalWeight:{

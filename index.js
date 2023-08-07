@@ -104,7 +104,7 @@ mongoose
         console.log(err);
       }
     };
-    getAdmin();
+    //getAdmin();
   })
   .catch((err) => {
     console.log(err);

@@ -13,10 +13,12 @@ const {
   passwordDecryptAES,
   newCompanyIdGen,
   decryptAES,
+  newInvoiceIdGenrate,
 } = require("../../util/helper");
 const { workDetailModel } = require("../../models/workDeatail");
 const { recieverModel } = require("../../models/reciever");
 const { response } = require("express");
+const { invoiceModel } = require("../../models/invoice");
 
 module.exports = {
 
@@ -178,6 +180,8 @@ getDashboardData: async (req, res) => {
   },
   createSell: async(req, res, next)=>{
     try{
+      const newInvoiceIdGen = await newInvoiceIdGenrate()
+      let newInvoiceInfo= new invoiceModel({})
       let payInfo=[]
        if(req.body.payInfo && req.body.payInfo.length>0){
         payInfo = req.body.payInfo.map(elem => (
@@ -193,6 +197,17 @@ getDashboardData: async (req, res) => {
       });
      const newSellDataCreated = await newSellData.save();
       if(newSellDataCreated){
+        newInvoiceInfo['invoiceInfo'] = {
+          paidAmount: parseFloat(req.body.paidAmount),
+          dueAmount :req.body.dueAmount,
+          sellId: newSellDataCreated._id
+        }
+        newInvoiceInfo['invoiceType'] ='NEW SELL PAYMENT'
+        newInvoiceInfo['paidStatus'] = true
+        newInvoiceInfo['companyId'] = newSellDataCreated.companyId
+        newInvoiceInfo['invoiceId'] = newInvoiceIdGen
+        newInvoiceInfo['insertedBy'] = req.body.insertedBy
+        const newInvoiceCreate = await newInvoiceInfo.save();
         return res.status(200).json({
           success: true,
           message:'Success'
@@ -216,9 +231,11 @@ getDashboardData: async (req, res) => {
   },
   updateSell: async(req, res, next)=>{
     try{
-      if(req.body.actionPassword){
-        const getUserActionPsw= decryptAES(req.body.actionPassword, req.user.userInfo.password)
-        if(passwordDecryptAES(req.user.userInfo.actionPassword)!== passwordDecryptAES(getUserActionPsw)){
+      const getActionPassword= req.body.actionPassword
+      delete req.body.actionPassword
+      if(getActionPassword){
+        const getUserActionPsw= decryptAES(getActionPassword, req.user.userInfo.password)
+        if(passwordDecryptAES(getActionPassword)!== passwordDecryptAES(getUserActionPsw)){
          return res.status(200).json({
            success: false,
            message:'Action password incorrect',
@@ -226,27 +243,52 @@ getDashboardData: async (req, res) => {
          });
         }
      }
+     const newInvoiceIdGen = await newInvoiceIdGenrate()
+     let newInvoiceInfo= new invoiceModel({})
+
       let payInfo=[]
+      let updateData={}
       const sellData=  await sellModel.findOne({_id: req.params.id});
       const oldPayInfo= sellData && sellData.payInfo && sellData.payInfo.length>0? sellData.payInfo: []
-   
-      if(req.body.payInfo && req.body.payInfo.length>0){
-        payInfo = req.body.payInfo.map(elem => {
-            let newData={}
-            if(elem._id && oldPayInfo.length>0 && (parseFloat(oldPayInfo.find(data=> data._id.toString() ===elem._id.toString()).amount) !== parseFloat(elem.amount))){
-              newData={...elem, payModifiedDate: new Date() }
-            }else{
-              newData={ ...elem, payDate: new Date()}
+    
+      if(req.body.dueAmountSubmisions && req.body.payInfo && req.body.payInfo.length>0){
+        newInvoiceInfo['invoiceInfo'] = {
+          paidAmount: parseFloat(req.body.duePaidAmount),
+          dueAmount :req.body.restDueAmount,
+          sellId: sellData._id
+        }
+        newInvoiceInfo['invoiceType'] ='DUE SELL PAYMENT'
+        newInvoiceInfo['paidStatus'] = true
+        newInvoiceInfo['companyId'] = sellData.companyId
+        newInvoiceInfo['invoiceId'] = newInvoiceIdGen
+        newInvoiceInfo['insertedBy'] = req.body.insertedBy
+        const newInvoiceCreate = await newInvoiceInfo.save();
+        updateData={
+          payInfo: [...oldPayInfo, ...req.body.payInfo],
+          paidAmount: parseFloat(sellData.paidAmount) + parseFloat(req.body.duePaidAmount),
+          dueAmount :  req.body.restDueAmount,
+          modified: new Date()
+        }
+      }else{
+        if(req.body.payInfo && req.body.payInfo.length>0 && !req.body.dueAmountSubmisions){
+          payInfo = req.body.payInfo.map(elem => {
+              let newData={}
+              if(elem._id && oldPayInfo.length>0 && (parseFloat(oldPayInfo.find(data=> data._id.toString() ===elem._id.toString()).amount) !== parseFloat(elem.amount))){
+                newData={...elem, payModifiedDate: new Date() }
+              }else{
+                newData={ ...elem, payDate: new Date()}
+              }
+              return newData
             }
-            return newData
-          }
-        )
-      }       
-      const updateData = {
-        ...req.body,
-        payInfo: payInfo,
-        modified: new Date()
-      };
+          )
+        }       
+         updateData = {
+          ...req.body,
+          payInfo: payInfo,
+          modified: new Date()
+        };
+      }
+    
       const updateSellData=  await sellModel.findOneAndUpdate({_id: req.params.id}, updateData);
       if(updateSellData){
         return res.status(200).json({
@@ -272,49 +314,102 @@ getDashboardData: async (req, res) => {
 
   createPurchase: async(req, res, next)=>{
     try{
-      if(req.body.workDetail && req.body.workDetail.unLoadingWorker && req.body.workDetail.unLoadingWorker.length>0){
-          for (const it of req.body.workDetail.unLoadingWorker) {
-              let workFound = await workDetailModel.findOne({$and:[{userId: it.userId},{dateOfWork: req.body.workDetail.dateOfWork}]})
-              const newUnLoadingWork= [{unLoadingNote:req.body.workDetail.unLoadingNote, unLoadingStartTime:req.body.workDetail.unLoadingStartTime, unLoadingEndTime: req.body.workDetail.unLoadingEndTime,unLoadingRowTime: req.body.workDetail.unLoadingRowTime, truck:true}]
+      // unloading work
+      if(req.body.unLoadingWorkDetail && req.body.unLoadingWorkDetail.unLoadingWorker && req.body.unLoadingWorkDetail.unLoadingWorker.length>0){
+        const newUnLoadingWork= [{'note':req.body.unLoadingWorkDetail.note, 'startTime':req.body.unLoadingWorkDetail.startTime, 'endTime': req.body.unLoadingWorkDetail.endTime,'rowTime': req.body.unLoadingWorkDetail.rowTime, truck:true}]
+          for (const it of req.body.unLoadingWorkDetail.unLoadingWorker) {
+              let workFound = await workDetailModel.findOne({$and:[{userId: it.userId},{dateOfWork: req.body.unLoadingWorkDetail.dateOfWork}]})
               if(workFound && workFound.unLoadingWorkList){
                
-                const truckUnLoadingWork= workFound.unLoadingWorkList.find(data=> data.truck)
-                if(truckUnLoadingWork){
+                // const truckUnLoadingWork= workFound.unLoadingWorkList.find(data=> data.truck)
+                // if(truckUnLoadingWork){
+                //   let oldUnLoadingWork= workFound.unLoadingWorkList.filter(data=> !data.truck)
+                //   workFound.unLoadingWorkList= [...oldUnLoadingWork, ...newUnLoadingWork]
+                
+                //   //let totalMilliSec=0
+                //   const allList = [...workFound.loadingWorkList,...workFound.unLoadingWorkList,...workFound.productionWorkList,...workFound.otherWorkList]
+                //   // allList.forEach(data=>{
+                //   // if(data.loadingRowTime || data.unLoadingRowTime || data.productionRowTime || data.otherRowTime){
+                //   //       const time=   data.loadingRowTime>0?data.loadingRowTime: data.unLoadingRowTime>0? data.unLoadingRowTime: data.productionRowTime>0? data.productionRowTime: data.otherRowTime>0? data.otherRowTime:0
+                //   //       totalMilliSec+= parseInt(time)
+                //   //   }
+                //   // })
+                //   workFound.totalMilliSec= allList.reduce((acc, curr) => acc + parseInt(curr.rowTime?curr.rowTime:0),0);
+                //   //workFound.totalMilliSec = totalMilliSec
+                
+                // }else{
+                //   let oldUnLoadingWork= workFound.unLoadingWorkList
+                //   workFound.unLoadingWorkList= [...oldUnLoadingWork,...newUnLoadingWork]
+                //   workFound.totalMilliSec =  parseInt(workFound.totalMilliSec) + parseInt(req.body.unLoadingWorkDetail.rowTime)
+                // }
+
                   let oldUnLoadingWork= workFound.unLoadingWorkList.filter(data=> !data.truck)
                   workFound.unLoadingWorkList= [...oldUnLoadingWork, ...newUnLoadingWork]
-                
-                  let totalMilliSec=0
                   const allList = [...workFound.loadingWorkList,...workFound.unLoadingWorkList,...workFound.productionWorkList,...workFound.otherWorkList]
-                  allList.forEach(data=>{
-                  if(data.loadingRowTime || data.unLoadingRowTime || data.productionRowTime || data.otherRowTime){
-                        const time=   data.loadingRowTime>0?data.loadingRowTime: data.unLoadingRowTime>0? data.unLoadingRowTime: data.productionRowTime>0? data.productionRowTime: data.otherRowTime>0? data.otherRowTime:0
-                        totalMilliSec+= parseInt(time)
-                    }
-                  })
-                  workFound.totalMilliSec = totalMilliSec
-                
-                }else{
-                  let oldUnLoadingWork= workFound.unLoadingWorkList
-                  workFound.unLoadingWorkList= [...oldUnLoadingWork,...newUnLoadingWork]
-                  workFound.totalMilliSec =  parseInt(workFound.totalMilliSec) + parseInt(req.body.workDetail.unLoadingRowTime)
-                }
+                  workFound.totalMilliSec= allList.reduce((acc, curr) => acc + parseInt(curr.rowTime?curr.rowTime:0),0);
+                 
                 await workDetailModel.findOneAndUpdate({_id: workFound._id},workFound)
               }else{
                 const newWorkDetail= new workDetailModel({
                   userId: it.userId,
-                  loadingWorkList: [],
                   unLoadingWorkList: newUnLoadingWork,
-                  productionWorkList: [],
-                  otherWorkList : [],
-                  parentUserId: req.body.workDetail.parentUserId,
-                  companyId: req.body.workDetail.companyId?req.body.workDetail.companyId:'423523523',
-                  totalMilliSec: req.body.workDetail.totalMilliSec?req.body.workDetail.totalMilliSec:0,
-                  dateOfWork : req.body.workDetail.dateOfWork
+                  parentUserId: req.body.unLoadingWorkDetail.parentUserId,
+                  companyId: req.body.companyId,
+                  totalMilliSec: req.body.unLoadingWorkDetail.rowTime?req.body.unLoadingWorkDetail.rowTime:0,
+                  dateOfWork : req.body.unLoadingWorkDetail.dateOfWork
                 });
-                const newWorkDetailCreated = await newWorkDetail.save();
+                  await newWorkDetail.save();
               }
           }
+             // Loading Work
+      if(req.body.loadingWorkDetail && req.body.loadingWorkDetail.loadingWorker && req.body.loadingWorkDetail.loadingWorker.length>0){
+        const newLoadingWork= [{'note':req.body.loadingWorkDetail.note, 'startTime':req.body.loadingWorkDetail.startTime, 'endTime': req.body.loadingWorkDetail.endTime,'rowTime': req.body.loadingWorkDetail.rowTime, truck:true}]
+        for (const it of req.body.loadingWorkDetail.loadingWorker) {
+            let workFound = await workDetailModel.findOne({$and:[{userId: it.userId},{dateOfWork: req.body.loadingWorkDetail.dateOfWork}]})
+            if(workFound && workFound.loadingWorkList){
+             
+              // const truckLoadingWork= workFound.loadingWorkList.find(data=> data.truck)
+              // if(truckLoadingWork){
+              //   let oldLoadingWork= workFound.loadingWorkList.filter(data=> !data.truck)
+              //   workFound.loadingWorkList= [...oldLoadingWork, ...newLoadingWork]
+              
+              //   //let totalMilliSec=0
+              //   const allList = [...workFound.loadingWorkList,...workFound.loadingWorkList,...workFound.productionWorkList,...workFound.otherWorkList]
+              //   // allList.forEach(data=>{
+              //   // if(data.loadingRowTime || data.unLoadingRowTime || data.productionRowTime || data.otherRowTime){
+              //   //       const time=   data.loadingRowTime>0?data.loadingRowTime: data.unLoadingRowTime>0? data.unLoadingRowTime: data.productionRowTime>0? data.productionRowTime: data.otherRowTime>0? data.otherRowTime:0
+              //   //       totalMilliSec+= parseInt(time)
+              //   //   }
+              //   // })
+              //   workFound.totalMilliSec= allList.reduce((acc, curr) => acc + parseInt(curr.rowTime?curr.rowTime:0),0);
+              //   //workFound.totalMilliSec = totalMilliSec
+              
+              // }else{
+              //   let oldLoadingWork= workFound.loadingWorkList
+              //   workFound.loadingWorkList= [...oldLoadingWork,...newLoadingWork]
+              //   workFound.totalMilliSec =  parseInt(workFound.totalMilliSec) + parseInt(req.body.loadingWorkDetail.rowTime)
+              // }
+              let oldLoadingWork= workFound.loadingWorkList.filter(data=> !data.truck)
+              workFound.loadingWorkList= [...oldLoadingWork, ...newLoadingWork]
+              const allList = [...workFound.loadingWorkList,...workFound.loadingWorkList,...workFound.productionWorkList,...workFound.otherWorkList]
+              workFound.totalMilliSec= allList.reduce((acc, curr) => acc + parseInt(curr.rowTime?curr.rowTime:0),0);
+
+              await workDetailModel.findOneAndUpdate({_id: workFound._id},workFound)
+            }else{
+              const newWorkDetail= new workDetailModel({
+                userId: it.userId,
+                loadingWorkList: newLoadingWork,
+                parentUserId: req.body.loadingWorkDetail.parentUserId,
+                companyId: req.body.companyId,
+                totalMilliSec: req.body.loadingWorkDetail.rowTime?req.body.loadingWorkDetail.rowTime:0,
+                dateOfWork : req.body.loadingWorkDetail.dateOfWork
+              });
+                await newWorkDetail.save();
+            }
+        }
       }
+      }
+   
      const newPurchaseData = new purchaseModel({
        ...req.body,
      });
@@ -845,7 +940,6 @@ getDashboardData: async (req, res) => {
       let roleRestriction=['TOPADMIN','ADMIN','SUPER_ADMIN']
       if(roleName && roleName==='TOPADMIN'){
         companyParam= {}
-        roleRestriction=['TOPADMIN']
       }
       if(roleName && (roleName==='INSTANCE ADMIN' || roleName==='ADMIN')){
         companyParam= {'userInfo.companyId': companyId}
@@ -1082,6 +1176,61 @@ getDashboardData: async (req, res) => {
   },
   getWorkDetail: async (req, res) => {
     try {
+     const allWork= await workDetailModel.find({})
+     if(allWork  && allWork.length>0){
+      for(const itWork of allWork){
+          if(itWork.loadingWorkList && itWork.loadingWorkList.length>0){
+             for(const itLoadingWork of itWork.loadingWorkList){
+              itLoadingWork['note']=itLoadingWork.loadingNote? itLoadingWork.loadingNote:itLoadingWork['note']
+              itLoadingWork['startTime']=itLoadingWork.loadingStartTime? itLoadingWork.loadingStartTime:itLoadingWork['startTime']
+              itLoadingWork['endTime']=itLoadingWork.loadingEndTime? itLoadingWork.loadingEndTime:itLoadingWork['endTime']
+              itLoadingWork['rowTime']=itLoadingWork.loadingRowTime? itLoadingWork.loadingRowTime: itLoadingWork['rowTime']
+              itLoadingWork.loadingNote= undefined
+              itLoadingWork.loadingStartTime= undefined
+              itLoadingWork.loadingEndTime= undefined
+              itLoadingWork.loadingRowTime = undefined
+             }
+          }
+          if(itWork.unLoadingWorkList && itWork.unLoadingWorkList.length>0){
+            for(const itUnLoadingWork of itWork.unLoadingWorkList){
+              itUnLoadingWork['note']= itUnLoadingWork.unLoadingNote?itUnLoadingWork.unLoadingNote:itUnLoadingWork['note']
+              itUnLoadingWork['startTime']=itUnLoadingWork.unLoadingStartTime? itUnLoadingWork.unLoadingStartTime:itUnLoadingWork['startTime']
+              itUnLoadingWork['endTime']=itUnLoadingWork.unLoadingEndTime? itUnLoadingWork.unLoadingEndTime:itUnLoadingWork['endTime']
+              itUnLoadingWork['rowTime']=itUnLoadingWork.unLoadingRowTime? itUnLoadingWork.unLoadingRowTime:itUnLoadingWork['rowTime']
+             itUnLoadingWork.unLoadingNote= undefined
+             itUnLoadingWork.unLoadingStartTime= undefined
+             itUnLoadingWork.unLoadingEndTime= undefined
+             itUnLoadingWork.unLoadingRowTime = undefined
+            }
+          }
+          if(itWork.productionWorkList && itWork.productionWorkList.length>0){
+            for(const itProduction of itWork.productionWorkList){
+              itProduction['note']= itProduction.productionNote?itProduction.productionNote:itProduction['note']
+              itProduction['startTime']= itProduction.productionStartTime? itProduction.productionStartTime: itProduction['startTime']
+              itProduction['endTime']= itProduction.productionEndTime? itProduction.productionEndTime:itProduction['endTime']
+              itProduction['rowTime']=itProduction.productionRowTime? itProduction.productionRowTime:itProduction['rowTime']
+            itProduction.productionNote= undefined
+            itProduction.productionStartTime= undefined
+            itProduction.productionEndTime= undefined
+            itProduction.productionRowTime = undefined
+            }
+          }
+          if(itWork.otherWorkList && itWork.otherWorkList.length>0){
+            for(const itOtherWork of itWork.otherWorkList){
+              itOtherWork['note']=itOtherWork.otherNote? itOtherWork.otherNote:itOtherWork['note']
+              itOtherWork['startTime']=itOtherWork.otherStartTime? itOtherWork.otherStartTime:itOtherWork['startTime']
+              itOtherWork['endTime']= itOtherWork.otherEndTime? itOtherWork.otherEndTime:itOtherWork['endTime']
+              itOtherWork['rowTime']= itOtherWork.otherRowTime? itOtherWork.otherRowTime:itOtherWork['rowTime']
+            itOtherWork.otherNote= undefined
+            itOtherWork.otherStartTime= undefined
+            itOtherWork.otherEndTime= undefined
+            itOtherWork.otherRowTime = undefined
+            }
+          }
+          await workDetailModel.findOneAndUpdate({'_id':itWork._id}, itWork)
+      }
+     }
+
         let companyId = req.setCompanyId
         let companyParam={companyId: companyId}
         const roleName = req.user.userInfo.roleName
@@ -1171,7 +1320,7 @@ getDashboardData: async (req, res) => {
       console.log(err);
       return res.status(400).json({
         success: false,
-        message: "Error while getting reciever deatils.",
+        message: "Error while getting reciever deatil.",
         error: err.message,
       });
     }

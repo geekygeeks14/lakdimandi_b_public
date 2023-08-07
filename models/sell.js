@@ -90,6 +90,9 @@ const sellSchema = new mongoose.Schema({
   discountAmount:{
     type: Number,
   },
+  loadingCharge:{
+    type: Number,
+  },
   created: {
     type: Date,
   },
