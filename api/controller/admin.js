@@ -244,7 +244,7 @@ getDashboardData: async (req, res) => {
       delete req.body.actionPassword
       if(getActionPassword){
         const getUserActionPsw= decryptAES(getActionPassword, req.user.userInfo.password)
-        if(passwordDecryptAES(getActionPassword)!== passwordDecryptAES(getUserActionPsw)){
+        if(passwordDecryptAES(req.user.userInfo.actionPassword)!== passwordDecryptAES(getUserActionPsw)){
          return res.status(200).json({
            success: false,
            message:'Action password incorrect',
@@ -949,6 +949,7 @@ getDashboardData: async (req, res) => {
       let roleRestriction=['TOPADMIN','ADMIN','SUPER_ADMIN']
       if(roleName && roleName==='TOPADMIN'){
         companyParam= {}
+        roleRestriction=['TOPADMIN']
       }
       if(roleName && (roleName==='INSTANCE ADMIN' || roleName==='ADMIN')){
         companyParam= {'userInfo.companyId': companyId}
