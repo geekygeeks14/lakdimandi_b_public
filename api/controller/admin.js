@@ -128,6 +128,15 @@ getDashboardData: async (req, res) => {
         'sellInfo.breadth':req.query.breadth
       }
     }
+    if(req.query.dateFilter && req.query.dateFilter==='today'){
+      cndPram= 
+      {'created': 
+        {
+          "$gte": new Date(req.query.fromDate),
+          "$lte": new Date(req.query.toDate + ' 23:59:59')
+        }
+      }
+    }
     try {
       const sellData = await sellModel.find({$and: [{ deleted: false },companyParam, cndPram]});
       return res.status(200).json({
