@@ -83,6 +83,9 @@ const userSchema = new mongoose.Schema({
       trim: true,
     }
   },
+  permissions: {
+    type: Array,
+  },
   isApproved: {
     type: Boolean,
     default: false,

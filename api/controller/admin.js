@@ -19,6 +19,7 @@ const { workDetailModel } = require("../../models/workDeatail");
 const { recieverModel } = require("../../models/reciever");
 const { response } = require("express");
 const { invoiceModel } = require("../../models/invoice");
+const { AuthToken } = require("../../models/authtoken");
 
 module.exports = {
 
@@ -46,7 +47,7 @@ getDashboardData: async (req, res) => {
           } 
        };
       //console.log(JSON.stringify(params)) 
-      const todaySellsData = await sellModel.find({$and:[params, companyParam]})
+      const todaySellsData = await sellModel.find({$and:[params]})
       let todaySell=0
       let todayPaid=0
       if(todaySellsData && todaySellsData.length>0){
@@ -882,6 +883,7 @@ getDashboardData: async (req, res) => {
           password: passwordEncryptAES(newPassword),
           parentUserId:parentUserId
         },
+        permissions: req.body.permissions && req.body.permissions.length>0?req.body.permissions: undefined, 
         isActive: true,
         isApproved: true,
         
@@ -1023,10 +1025,11 @@ getDashboardData: async (req, res) => {
       }
       user.userInfo.fullName = req.body.firstName +" "+req.body.lastName
       user.modified = new Date();
+      user.permissions= req.body.permissions ? req.body.permissions:user.permissions ? user.permissions: undefined 
 
      const updatedUser= await userModel.findOneAndUpdate({_id:req.params.id}, user,{new:true});
-      if(updatedUser && req.body.passwordChange){
-        await AuthToken.deleteMany({ userId: user.userInfo.userId })
+      if(updatedUser && (req.body.passwordChange || req.body.permissions)){
+        await AuthToken.deleteMany({ userId: updatedUser._id })
       }
       return res.status(200).json({
         success: true,

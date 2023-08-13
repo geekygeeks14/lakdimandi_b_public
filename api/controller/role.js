@@ -4,8 +4,23 @@ module.exports = {
   getAllRoles: async (req, res) => {
     //console.log(req);
     try {
+      const roleName = req.user.userInfo.roleName
+      let roleAllow=[]
+      
+      if(roleName && roleName==='TOPADMIN'){
+        roleAllow=['SUPER_ADMIN','INSTANCE ADMIN', 'ADMIN','ACCOUNTANT','WORKER']
+      }  
+      if(roleName && roleName==='SUPER_ADMIN'){
+        roleAllow=['INSTANCE ADMIN']
+      }
+      if(roleName &&  roleName==='ADMIN'){
+        roleAllow=['ACCOUNTANT','WORKER']
+      }
+      if(roleName && roleName==='INSTANCE ADMIN'){
+        roleAllow=['ACCOUNTANT','WORKER']
+      }
       const roleList = await roleModel.find({
-        $and: [{ deleted: false }, { roleName: { $nin:["TOPADMIN","ADMIN"]}}],
+        $and: [{ deleted: false }, { roleName: { $in:roleAllow}}],
       });
 
       if (!roleList) {
