@@ -130,7 +130,7 @@ getDashboardData: async (req, res) => {
         'sellInfo.breadth':req.query.breadth
       }
     }
-    if(req.query.dateFilter && req.query.dateFilter==='today'){
+    if((req.query.dateFilter && req.query.dateFilter==='today') || (roleName && roleName==='ACCOUNTANT')){
       cndPram= 
       {'created': 
         {
