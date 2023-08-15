@@ -35,5 +35,9 @@ router.post("/updateWorkDetail", isAunthaticatedAdmin, admin.updateWorkDetail);
 router.get("/getWorkDetail", isAunthaticatedAdmin, admin.getWorkDetail);
 router.post("/addReciever", isAunthaticatedAdmin, admin.addReciever);
 router.get("/getReciver", isAunthaticatedAdmin, admin.getReciever);
+router.post("/createPayOption", isAunthaticatedAdmin, admin.createPayOption);
+router.get("/getAllPayOption", isAunthaticatedAdmin, admin.getAllPayOption);
+router.post("/updatePayOption/:id", isAunthaticatedAdmin, admin.updatePayOption);
+router.delete("/deletePayOption/:id", isAunthaticatedAdmin, admin.deletePayOption);
 
 module.exports = router;

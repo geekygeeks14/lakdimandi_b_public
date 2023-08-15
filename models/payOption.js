@@ -1,10 +1,6 @@
 const mongoose = require("mongoose");
 
 const payOptionSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
   companyId: {
     type: String,
     required: true,
@@ -12,7 +8,7 @@ const payOptionSchema = new mongoose.Schema({
   payOptionInfo: {
     type: JSON
   },
-  type:{
+  payMethod:{
     type: String,
     required: true,
   }, 

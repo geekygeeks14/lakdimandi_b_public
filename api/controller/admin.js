@@ -20,6 +20,7 @@ const { recieverModel } = require("../../models/reciever");
 const { response } = require("express");
 const { invoiceModel } = require("../../models/invoice");
 const { AuthToken } = require("../../models/authtoken");
+const { payOptionModel } = require("../../models/payOption");
 
 module.exports = {
 
@@ -1167,7 +1168,11 @@ getDashboardData: async (req, res) => {
   updateWorkDetail: async(req, res, next)=>{
     try{
        const workDetailId= req.body.selectedWorkDetailId
-      const updateWorkDetail = await workDetailModel.findOneAndUpdate({_id:workDetailId},{...req.body})
+       let updateData={
+        ...req.body,
+        modified:new Date()
+       }
+      const updateWorkDetail = await workDetailModel.findOneAndUpdate({_id:workDetailId},updateData)
       if(updateWorkDetail){
         return res.status(200).json({
           success: true,
@@ -1282,7 +1287,7 @@ getDashboardData: async (req, res) => {
           console.log("err", err)
           return res.status(400).json({
             success: false,
-            message: "Error",
+            message: "Reciever not created",
             error: err.message,
           });
          }else{
@@ -1292,12 +1297,6 @@ getDashboardData: async (req, res) => {
           });
          }
       })
-        let companyId = req.setCompanyId
-        let companyParam={companyId: companyId}
-        const roleName = req.user.userInfo.roleName
-        if(roleName&& roleName==='TOPADMIN'){
-          companyParam= {}
-        }
     } catch (err) {
       console.log(err);
       return res.status(400).json({
@@ -1334,6 +1333,106 @@ getDashboardData: async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Error while getting reciever deatil.",
+        error: err.message,
+      });
+    }
+  },
+  createPayOption: async (req, res) => {
+    try {
+        
+      payOptionModel.create(req.body).then((response, err)=>{
+         if(err){
+          console.log("err", err)
+          return res.status(400).json({
+            success: false,
+            message: "Pay Option not created",
+            error: err.message,
+          });
+         }else{
+          return res.status(200).json({
+            success: true,
+            message:'Pay Option created successfully'
+          });
+         }
+      })
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while creating Pay Option",
+        error: err.message,
+      });
+    }
+  },
+  getAllPayOption: async (req, res) => {
+    try {
+        let companyId = req.setCompanyId
+        let companyParam={companyId: companyId}
+        const roleName = req.user.userInfo.roleName
+        if(roleName&& roleName==='TOPADMIN'){
+          companyParam= {}
+        }
+     
+      const payOptionData = await payOptionModel.find(companyParam);
+      if(!payOptionData){
+        return res.status(200).json({
+          success: false,
+          message:'Pay Option not found.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          data:payOptionData,
+        });
+      }
+  
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while getting Pay Option.",
+        error: err.message,
+      });
+    }
+  },
+  updatePayOption: async(req, res, next)=>{
+    try{
+       let updateData={
+        ...req.body,
+        modified:new Date()
+       }
+      const updatePayOption = await payOptionModel.findOneAndUpdate({_id:req.params.id},updateData)
+      if(updatePayOption){
+        return res.status(200).json({
+          success: true,
+          message:'Update Successfully'
+        });
+      }else{
+        return res.status(200).json({
+          success: false,
+          message:'Error, Please try again!'
+        });
+      }
+    }catch(err){
+      return res.status(400).json({
+        success: false,
+        message:'Error while updating pay option',
+        error: err.message,
+      });
+    }
+  },
+  deletePayOption: async (req, res) => {
+    try {
+     await payOptionModel.findOneAndUpdate({_id:req.params.id},{deleted: true, modified:new Date()});
+      return res.status(200).json({
+        success: true,
+        message: "Deleted successfully."
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Pay option not found.",
         error: err.message,
       });
     }
