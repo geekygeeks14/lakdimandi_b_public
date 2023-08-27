@@ -15,16 +15,17 @@ exports.isAunthaticatedAdmin = async (req, res, next) => {
     }
     console.log("token",token)
     const tokenFound = await AuthToken.findOne({ token: JSON.parse(token) });
-    console.log('tokenFound',tokenFound)
+    //console.log('tokenFound',tokenFound)
     const decode = jwt.verify(JSON.parse(token), secret);
+   
     if(tokenFound){
       if (decode.isAdmin) {
         const userData = await userModel.findOne({ _id: decode.userId });
         if (userData) {
           req.user = userData;
           req.setCompanyId = userData.userInfo.companyId;
-          console.log('passsss111111111', userData.userInfo.companyId)
-          console.log('passsss222222222', req.setCompanyId)
+          //console.log('passsss111111111', userData.userInfo.companyId)
+          //console.log('passsss222222222', req.setCompanyId)
           next();
         } else {
           return res.status(401).json({
@@ -43,9 +44,10 @@ exports.isAunthaticatedAdmin = async (req, res, next) => {
         });
     }
   } catch (error) {
-    return res.status(500).json({
-      message: error.message,
-    });
+    console.log("errrror", error)
+    return res.status(401).json({
+        message: "TOKEN EXPIRED",
+      });
   }
 };
 
