@@ -1,4 +1,4 @@
-const { securityLogModel } = require("../../models/secuirityLog");
+const { securityLogModel } = require("../../models/securityLog");
 const { userModel } = require("../../models/user");
 const momentTZ = require('moment-timezone')
 
@@ -78,7 +78,7 @@ return decice
 
 module.exports = {
 
-    getSecuirtyLogs: async (req, res) => {
+    getSecurityLogs: async (req, res) => {
         let logType = req.params.logType || 'all'
         let limit = req.query.limit && parseInt(req.query.limit) > 0 ? parseInt(req.query.limit): 0;
         if(logType === 'all') {

@@ -46,14 +46,14 @@ const role = require("./routes/role");
 const public = require("./routes/public");
 const authorize = require("./routes/authorize");
 const admin = require("./routes/admin");
-const secuirity = require("./routes/secuirity");
+const security = require("./routes/security");
 const { passwordEncryptAES } = require("./util/helper");
 
 app.use(`${api}/public`, public);
 app.use(`${api}/role`, role);
 app.use(`${api}/authorize`, authorize);
 app.use(`${api}/admin`, admin);
-app.use(`${api}/secuirity`, secuirity);
+app.use(`${api}/security`, security);
 // Database
 mongoose
   .connect(mongoUrl, {
