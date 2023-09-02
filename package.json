@@ -4,13 +4,14 @@
   "description": "backend",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "cloudinary": "^1.40.0",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
     "crypto-js": "^4.0.0",

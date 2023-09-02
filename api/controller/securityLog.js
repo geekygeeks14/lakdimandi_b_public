@@ -131,8 +131,8 @@ module.exports = {
                 companyName: user.userInfo.companyId, 
                 companyId: user.userInfo.companyName,
                 userId: req.body.userId, 
-                ipAdress: req.ip,
-                device: req.body.device
+                ipAdress: (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
+                device: req.headers[`user-agent`]
             }) 
             res.status(201).json({ 
                 status: 'success', 
