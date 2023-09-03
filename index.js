@@ -8,6 +8,7 @@ const errorHandler = require("./util/errorHandler");
 const { roleModel } = require("./models/role");
 const { userModel } = require("./models/user");
 const fileUpload = require('express-fileupload')
+const cloudinary = require("cloudinary").v2;
 require("dotenv/config");
 
 const api = process.env.API_URL;
@@ -17,6 +18,12 @@ const mongoDbName = process.env.MONGO_DB_NAME;
 
 const secrets = process.env.SECRET;
 
+cloudinary.config({
+  cloud_name: 'dx7oism2m',
+  api_key: '248636197834944',
+  api_secret: 'cLgqBfr-C66tEzWre6TuFokIoKI'
+});
+
 app.use(cors());
 app.options("*", cors());
 
@@ -25,6 +32,7 @@ app.use(express.json());
 app.use(morgan("tiny"));
 app.use(errorHandler);
 app.use(fileUpload({
+  useTempFiles: true,
   limits: {fileSize: 50 * 1024 * 1024},
 }));
 

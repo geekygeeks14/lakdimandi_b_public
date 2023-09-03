@@ -21,6 +21,7 @@ const { response } = require("express");
 const { invoiceModel } = require("../../models/invoice");
 const { AuthToken } = require("../../models/authtoken");
 const { payOptionModel } = require("../../models/payOption");
+const cloudinary = require('cloudinary').v2
 
 module.exports = {
 
@@ -442,6 +443,50 @@ getDashboardData: async (req, res) => {
       return res.status(400).json({
         success: false,
         message:'Error while submiting purchase data',
+        error: err.message,
+      });
+    }
+  },
+
+  uploadImage: async(req, res, next)=>{
+    console.log("reqqqqqqqqqqqqqqqqqqqqqqqqBody", req.body.fileName)
+    console.log("reqqqqqqqqqqqqqqqqqqqqqqqqfile", req.files.image)
+
+    const file =  req.files.image
+
+    try{
+      
+      cloudinary.uploader.upload(file.tempFilePath, {
+        public_id: req.body.fileName,
+        resource_type: 'image'
+        },(error, result) => {
+          if (!error) {
+            // The image has been successfully uploaded.
+            console.log('Upload Result:', result);
+            return res.status(200).json({
+              success: true,
+              message:'Image uploaded success',
+              data: result,
+            });
+
+            // if(req.body.action==='purchase_level1' && req.body.fileName && req.body.fileName.includes('truckFront')){
+
+            // }
+          } else {
+            // Handle the error.
+            console.error('Upload Error:', error);
+            return res.status(200).json({
+              success: false,
+              message:'Image not uploaded',
+              data: error,
+            });
+          }
+      });
+    }catch(err){
+      console.log("errrrrrrrrrrrr", err)
+      return res.status(400).json({
+        success: false,
+        message:'Error while upload image',
         error: err.message,
       });
     }

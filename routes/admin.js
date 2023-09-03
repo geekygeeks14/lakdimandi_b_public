@@ -39,5 +39,6 @@ router.post("/createPayOption", isAunthaticatedAdmin, admin.createPayOption);
 router.get("/getAllPayOption", isAunthaticatedAdmin, admin.getAllPayOption);
 router.post("/updatePayOption/:id", isAunthaticatedAdmin, admin.updatePayOption);
 router.delete("/deletePayOption/:id", isAunthaticatedAdmin, admin.deletePayOption);
+router.post("/uploadImage", isAunthaticatedAdmin, admin.uploadImage);
 
 module.exports = router;
