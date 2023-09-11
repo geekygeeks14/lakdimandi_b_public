@@ -33,6 +33,7 @@ app.use(morgan("tiny"));
 app.use(errorHandler);
 app.use(fileUpload({
   useTempFiles: true,
+  tempFileDir: "/tmp",
   limits: {fileSize: 50 * 1024 * 1024},
 }));
 

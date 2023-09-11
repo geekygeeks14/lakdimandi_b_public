@@ -450,12 +450,74 @@ getDashboardData: async (req, res) => {
 
   uploadImage: async(req, res, next)=>{
     console.log("reqqqqqqqqqqqqqqqqqqqqqqqqBody", req.body.fileName)
-    console.log("reqqqqqqqqqqqqqqqqqqqqqqqqfile", req.files.image)
+    console.log("reqqqqqqqqqqqqqqqqqqqqqqqqfile", req.files.file)
 
-    const file =  req.files.image
+    const file =  req.files.file
+      require("dotenv").config();
+      // I prefer to explictly configure it so that we don't get conflict from anything else
+      const config = {
+        region: process.env.AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        },
+      };
+try{
+      //const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+      //console.log("S3_BUCKET_NAME", S3_BUCKET_NAME)
+      //console.log("config", config)
+      //const fs = require("@cyclic.sh/s3fs/promises")(S3_BUCKET_NAME);
 
-    try{
+      // const user = {
+      //   name: "Ashik Nesin",
+      //   website: "https://AshikNesin.com",
+      // };
+
+      // async function run() {
+      //   await fs.writeFile("test/_read.json", JSON.stringify(user));
+
+      //   console.log(`Saved json file to AWS S3`);
+
+      //   const currentPath = `${process.cwd()}/s3fs/user.json`;
+
+      //   console.log({ currentPath });
+
+      //   const json = JSON.parse(await fs.readFile(currentPath));
+
+      //   console.log(`Retrive json file from AWS S3`);
+
+      //   console.log(JSON.stringify(json, null, 2));
+      // }
+      // run();
+
+ 
+  
+    // fs.writeFile(req.body.fileName, req.files.image, function (err) {
+    //   if (err) throw err;
+    //   console.log('It\'s saved!');
+    // });
+
+    // fs.readFile(req.body.fileName, (error,data)=>{
+    //   if(error){
+    //     console.log("errrr", error)
+    //   }else{
       
+    //     console.log("jsonjson", data)
+    //     return res.status(200).json({
+    //                 success: true,
+    //                 message:'Image',
+    //                 data: data,
+    //               });
+     
+    //   }
+    // })
+    // async function run(){
+    //   const json = JSON.parse(await fs.readFile(req.body.fileName))
+    //   console.log("json", json)
+    // }
+    // run()
+    // try{
+      console.log("filefilefilefile",file )
       cloudinary.uploader.upload(file.tempFilePath, {
         public_id: req.body.fileName,
         resource_type: 'image'
