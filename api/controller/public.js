@@ -43,7 +43,7 @@ module.exports = {
             message: "User not approved by admin. Please contact to admin.",
           });
       }
-        if(!(user && passwordDecryptAES(user.userInfo.password)===decryptAES(req.body.password,'login'))) {
+        if(!(user && passwordDecryptAES(user.userInfo.password)===decryptAES(req.body.password))) {
           return res.status(200).json({
             success: false,
             message: "User name or Password is wrong",

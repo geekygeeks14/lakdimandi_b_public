@@ -79,10 +79,16 @@ return decice
 module.exports = {
 
     getSecurityLogs: async (req, res) => {
+        let companyId = req.setCompanyId
+        let companyParam = {'companyId': companyId}
+        const roleName = req.user.userInfo.roleName
+        if(roleName && (roleName==='TOPADMIN' || roleName==='SUPER_ADMIN')){
+          companyParam = {}
+        }
         let logType = req.params.logType || 'all'
         let limit = req.query.limit && parseInt(req.query.limit) > 0 ? parseInt(req.query.limit): 0;
         if(logType === 'all') {
-            securityLogModel.find({}).sort({_id:-1}).limit(limit).exec( async(err, data) => {
+            securityLogModel.find(companyParam).sort({_id:-1}).limit(limit).exec( async(err, data) => {
                 if (err) {
                     next(err);
                 } else {
@@ -128,8 +134,7 @@ module.exports = {
                 menu_url:req.body.menuUrl,
                 name: user.userInfo.fullName, 
                 phoneNumber: user.userInfo.phoneNumber,
-                companyName: user.userInfo.companyId, 
-                companyId: user.userInfo.companyName,
+                companyId: user.userInfo.companyId,
                 userId: req.body.userId, 
                 ipAdress: (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
                 device: req.headers[`user-agent`]

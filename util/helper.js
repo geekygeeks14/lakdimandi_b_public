@@ -63,7 +63,7 @@ module.exports = {
   },
 
 
-  decryptAES : (encryptedBase64, SECRET_MSG) => {
+  decryptAES : (encryptedBase64) => {
     const decrypted = CryptoJS.AES.decrypt(encryptedBase64, SECRET_MSG);
     if (decrypted) {
         try {
