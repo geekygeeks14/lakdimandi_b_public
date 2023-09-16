@@ -57,12 +57,14 @@ const authorize = require("./routes/authorize");
 const admin = require("./routes/admin");
 const security = require("./routes/security");
 const { passwordEncryptAES } = require("./util/helper");
+const cronJob = require("./routes/cronJob");
 
 app.use(`${api}/public`, public);
 app.use(`${api}/role`, role);
 app.use(`${api}/authorize`, authorize);
 app.use(`${api}/admin`, admin);
 app.use(`${api}/security`, security);
+app.use(`${api}/cron`, cronJob);
 // Database
 mongoose
   .connect(mongoUrl, {

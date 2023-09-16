@@ -15,9 +15,8 @@ const {
   decryptAES,
   newInvoiceIdGenrate,
 } = require("../../util/helper");
-const { workDetailModel } = require("../../models/workDeatail");
+const { workDetailModel } = require("../../models/workDetail");
 const { recieverModel } = require("../../models/reciever");
-const { response } = require("express");
 const { invoiceModel } = require("../../models/invoice");
 const { AuthToken } = require("../../models/authtoken");
 const { payOptionModel } = require("../../models/payOption");

@@ -54,5 +54,5 @@ workDetailSchema.pre("save", function (next) {
   next();
 });
 
-exports.workDetailModel = mongoose.model("workDeatail", workDetailSchema);
+exports.workDetailModel = mongoose.model("workDetail", workDetailSchema);
 exports.workDetailSchema = workDetailSchema;
