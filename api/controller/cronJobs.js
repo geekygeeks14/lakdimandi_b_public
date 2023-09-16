@@ -38,7 +38,7 @@ const transporter = nodemailer.createTransport({
   // }
 });
 
-const mailTo= `hkc.kumar@gmail.com, geekygeeks14@gmail.com`
+const mailTo= `geekygeeks14@gmail.com,yadhuvansienterprises@yahoo.com`
 
 let requestBody={
   jobPerform: `Daily Backup Mail Send.`,
@@ -83,14 +83,14 @@ module.exports = {
         const buffer = await zip.generateAsync({ type: `nodebuffer` })
         if(buffer){ 
             const mailOptions ={ 
-                from: `"BMMS Daily Backup ${today}" <info@bmmschool.in>`, // sender address 
+                from: `"YE Daily Backup ${today}" <info@bmmschool.in>`, // sender address 
                 to: mailTo, // list of receivers
-                subject: `BMMS Daily Backup ${today}`, // Subject line 
+                subject: `YE Daily Backup ${today}`, // Subject line 
                 text: "Find atachment", // plain text body 
-                html: "<b>BM Memorial School</b>", // html body 
+                html: "<b>Yadhuvanshi Enterprises</b>", // html body 
                 attachments: [ 
                     { 
-                        filename: `BMMS_Daily_Backup_${today}.zip`, 
+                        filename: `YE_Daily_Backup_${today}.zip`, 
                         content: buffer 
                     }, 
                 ], 
