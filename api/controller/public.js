@@ -54,14 +54,13 @@ module.exports = {
         //const expireDay=  isAdmin?"1d":"100d"
         const ROLE = roleExist? roleExist.roleName:''
         let isAdmin = (ROLE && (ROLE==='ADMIN'|| ROLE==='TOPADMIN' || ROLE==='SUPER_ADMIN'|| ROLE==='INSTANCE ADMIN' || ROLE==='ACCOUNTANT'))? true : false
-        const expireDay=  (ROLE==='TOPADMIN')? undefined:"1d"
+        const expireDay=  "1d"
         const tokenGen = jwt.sign(
           {
             userId: user.id,
             isAdmin: isAdmin,
           },
           secret,
-          { expiresIn: expireDay }
         );
         const tokenSave = new AuthToken({
           token: tokenGen,
