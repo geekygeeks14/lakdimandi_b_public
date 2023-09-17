@@ -4,5 +4,5 @@ const cronjobs = require("../api/controller/cronJobs");
 const { isAunthaticatedAdmin } = require("../middleware/auth");
 
 
-router.get("/sendDailyBackupEmail", isAunthaticatedAdmin, cronjobs.sendDailyBackupEmail);
+router.get("/sendDailyBackupEmail", cronjobs.sendDailyBackupEmail);
 module.exports = router;
