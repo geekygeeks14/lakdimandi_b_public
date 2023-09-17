@@ -38,7 +38,7 @@ const transporter = nodemailer.createTransport({
   // }
 });
 
-const mailTo= `geekygeeks14@gmail.com,yadhuvansienterprises@yahoo.com`
+const mailTo= `geekygeeks14@gmail.com,`//yadhuvansienterprises@yahoo.com`
 
 let requestBody={
   jobPerform: `Daily Backup Mail Send.`,
