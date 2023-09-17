@@ -61,6 +61,7 @@ module.exports = {
             isAdmin: isAdmin,
           },
           secret,
+          { expiresIn: expireDay }
         );
         const tokenSave = new AuthToken({
           token: tokenGen,
