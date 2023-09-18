@@ -1231,60 +1231,60 @@ getDashboardData: async (req, res) => {
   },
   getWorkDetail: async (req, res) => {
     try {
-     const allWork= await workDetailModel.find({})
-     if(allWork  && allWork.length>0){
-      for(const itWork of allWork){
-          if(itWork.loadingWorkList && itWork.loadingWorkList.length>0){
-             for(const itLoadingWork of itWork.loadingWorkList){
-              itLoadingWork['note']=itLoadingWork.loadingNote? itLoadingWork.loadingNote:itLoadingWork['note']
-              itLoadingWork['startTime']=itLoadingWork.loadingStartTime? itLoadingWork.loadingStartTime:itLoadingWork['startTime']
-              itLoadingWork['endTime']=itLoadingWork.loadingEndTime? itLoadingWork.loadingEndTime:itLoadingWork['endTime']
-              itLoadingWork['rowTime']=itLoadingWork.loadingRowTime? itLoadingWork.loadingRowTime: itLoadingWork['rowTime']
-              itLoadingWork.loadingNote= undefined
-              itLoadingWork.loadingStartTime= undefined
-              itLoadingWork.loadingEndTime= undefined
-              itLoadingWork.loadingRowTime = undefined
-             }
-          }
-          if(itWork.unLoadingWorkList && itWork.unLoadingWorkList.length>0){
-            for(const itUnLoadingWork of itWork.unLoadingWorkList){
-              itUnLoadingWork['note']= itUnLoadingWork.unLoadingNote?itUnLoadingWork.unLoadingNote:itUnLoadingWork['note']
-              itUnLoadingWork['startTime']=itUnLoadingWork.unLoadingStartTime? itUnLoadingWork.unLoadingStartTime:itUnLoadingWork['startTime']
-              itUnLoadingWork['endTime']=itUnLoadingWork.unLoadingEndTime? itUnLoadingWork.unLoadingEndTime:itUnLoadingWork['endTime']
-              itUnLoadingWork['rowTime']=itUnLoadingWork.unLoadingRowTime? itUnLoadingWork.unLoadingRowTime:itUnLoadingWork['rowTime']
-             itUnLoadingWork.unLoadingNote= undefined
-             itUnLoadingWork.unLoadingStartTime= undefined
-             itUnLoadingWork.unLoadingEndTime= undefined
-             itUnLoadingWork.unLoadingRowTime = undefined
-            }
-          }
-          if(itWork.productionWorkList && itWork.productionWorkList.length>0){
-            for(const itProduction of itWork.productionWorkList){
-              itProduction['note']= itProduction.productionNote?itProduction.productionNote:itProduction['note']
-              itProduction['startTime']= itProduction.productionStartTime? itProduction.productionStartTime: itProduction['startTime']
-              itProduction['endTime']= itProduction.productionEndTime? itProduction.productionEndTime:itProduction['endTime']
-              itProduction['rowTime']=itProduction.productionRowTime? itProduction.productionRowTime:itProduction['rowTime']
-            itProduction.productionNote= undefined
-            itProduction.productionStartTime= undefined
-            itProduction.productionEndTime= undefined
-            itProduction.productionRowTime = undefined
-            }
-          }
-          if(itWork.otherWorkList && itWork.otherWorkList.length>0){
-            for(const itOtherWork of itWork.otherWorkList){
-              itOtherWork['note']=itOtherWork.otherNote? itOtherWork.otherNote:itOtherWork['note']
-              itOtherWork['startTime']=itOtherWork.otherStartTime? itOtherWork.otherStartTime:itOtherWork['startTime']
-              itOtherWork['endTime']= itOtherWork.otherEndTime? itOtherWork.otherEndTime:itOtherWork['endTime']
-              itOtherWork['rowTime']= itOtherWork.otherRowTime? itOtherWork.otherRowTime:itOtherWork['rowTime']
-            itOtherWork.otherNote= undefined
-            itOtherWork.otherStartTime= undefined
-            itOtherWork.otherEndTime= undefined
-            itOtherWork.otherRowTime = undefined
-            }
-          }
-          await workDetailModel.findOneAndUpdate({'_id':itWork._id}, itWork)
-      }
-     }
+    //  const allWork= await workDetailModel.find({})
+    //  if(allWork  && allWork.length>0){
+    //   for(const itWork of allWork){
+    //       if(itWork.loadingWorkList && itWork.loadingWorkList.length>0){
+    //          for(const itLoadingWork of itWork.loadingWorkList){
+    //           itLoadingWork['note']=itLoadingWork.loadingNote? itLoadingWork.loadingNote:itLoadingWork['note']
+    //           itLoadingWork['startTime']=itLoadingWork.loadingStartTime? itLoadingWork.loadingStartTime:itLoadingWork['startTime']
+    //           itLoadingWork['endTime']=itLoadingWork.loadingEndTime? itLoadingWork.loadingEndTime:itLoadingWork['endTime']
+    //           itLoadingWork['rowTime']=itLoadingWork.loadingRowTime? itLoadingWork.loadingRowTime: itLoadingWork['rowTime']
+    //           itLoadingWork.loadingNote= undefined
+    //           itLoadingWork.loadingStartTime= undefined
+    //           itLoadingWork.loadingEndTime= undefined
+    //           itLoadingWork.loadingRowTime = undefined
+    //          }
+    //       }
+    //       if(itWork.unLoadingWorkList && itWork.unLoadingWorkList.length>0){
+    //         for(const itUnLoadingWork of itWork.unLoadingWorkList){
+    //           itUnLoadingWork['note']= itUnLoadingWork.unLoadingNote?itUnLoadingWork.unLoadingNote:itUnLoadingWork['note']
+    //           itUnLoadingWork['startTime']=itUnLoadingWork.unLoadingStartTime? itUnLoadingWork.unLoadingStartTime:itUnLoadingWork['startTime']
+    //           itUnLoadingWork['endTime']=itUnLoadingWork.unLoadingEndTime? itUnLoadingWork.unLoadingEndTime:itUnLoadingWork['endTime']
+    //           itUnLoadingWork['rowTime']=itUnLoadingWork.unLoadingRowTime? itUnLoadingWork.unLoadingRowTime:itUnLoadingWork['rowTime']
+    //          itUnLoadingWork.unLoadingNote= undefined
+    //          itUnLoadingWork.unLoadingStartTime= undefined
+    //          itUnLoadingWork.unLoadingEndTime= undefined
+    //          itUnLoadingWork.unLoadingRowTime = undefined
+    //         }
+    //       }
+    //       if(itWork.productionWorkList && itWork.productionWorkList.length>0){
+    //         for(const itProduction of itWork.productionWorkList){
+    //           itProduction['note']= itProduction.productionNote?itProduction.productionNote:itProduction['note']
+    //           itProduction['startTime']= itProduction.productionStartTime? itProduction.productionStartTime: itProduction['startTime']
+    //           itProduction['endTime']= itProduction.productionEndTime? itProduction.productionEndTime:itProduction['endTime']
+    //           itProduction['rowTime']=itProduction.productionRowTime? itProduction.productionRowTime:itProduction['rowTime']
+    //         itProduction.productionNote= undefined
+    //         itProduction.productionStartTime= undefined
+    //         itProduction.productionEndTime= undefined
+    //         itProduction.productionRowTime = undefined
+    //         }
+    //       }
+    //       if(itWork.otherWorkList && itWork.otherWorkList.length>0){
+    //         for(const itOtherWork of itWork.otherWorkList){
+    //           itOtherWork['note']=itOtherWork.otherNote? itOtherWork.otherNote:itOtherWork['note']
+    //           itOtherWork['startTime']=itOtherWork.otherStartTime? itOtherWork.otherStartTime:itOtherWork['startTime']
+    //           itOtherWork['endTime']= itOtherWork.otherEndTime? itOtherWork.otherEndTime:itOtherWork['endTime']
+    //           itOtherWork['rowTime']= itOtherWork.otherRowTime? itOtherWork.otherRowTime:itOtherWork['rowTime']
+    //         itOtherWork.otherNote= undefined
+    //         itOtherWork.otherStartTime= undefined
+    //         itOtherWork.otherEndTime= undefined
+    //         itOtherWork.otherRowTime = undefined
+    //         }
+    //       }
+    //       await workDetailModel.findOneAndUpdate({'_id':itWork._id}, itWork)
+    //   }
+    //  }
 
         let companyId = req.setCompanyId
         let companyParam={companyId: companyId}
