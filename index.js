@@ -15,13 +15,16 @@ const api = process.env.API_URL;
 const PORT = process.env.PORT;
 const mongoUrl = process.env.MONGO_LOCAL_CONN_URL;
 const mongoDbName = process.env.MONGO_DB_NAME;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
 
 const secrets = process.env.SECRET;
 
 cloudinary.config({
-  cloud_name: 'dx7oism2m',
-  api_key: '248636197834944',
-  api_secret: 'cLgqBfr-C66tEzWre6TuFokIoKI'
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET
 });
 
 app.use(cors());

@@ -38,14 +38,60 @@ const transporter = nodemailer.createTransport({
   // }
 });
 
-const mailTo= `geekygeeks14@gmail.com, yadhuvansienterprises@yahoo.com`
+const mailTo= `yadhuvansienterprises@yahoo.com`
 
 let requestBody={
-  jobPerform: `Daily Backup Mail Send.`,
+  jobPerform: `Daily Backup Mail`,
   detail: `${mailTo} Daily Backup Mail send successfully.`,
-  scheduleTime: (moment().format('hh:mm:ss A')).toString(),
+  scheduleTime: (moment().format('hh:mm A')).toString(),
   status: 'Success'
 }
+
+// const convertData=(docs)=>{
+//     // docs.forEach(element => {
+//     //     element._id={
+//     //       "$oid": element._id
+//     //     }
+//     //     if(element.dob){
+//     //       element.dob={
+//     //         "$date": {
+//     //           "$numberLong": element.dob
+//     //         }
+//     //       }
+//     //     }
+//     //     element.created={
+//     //       "$date": {
+//     //         "$numberLong": element.dob
+//     //       }
+//     //     }
+//     //     element.modified={
+//     //       "$date": {
+//     //         "$numberLong": element.dob
+//     //       }
+//     //     }
+      
+//     // });
+//    const newDocs=  docs.map(element=> {
+//       return{
+//         ...element,
+//         _id:{
+//             "$oid": element._id
+//           },
+//           created:{
+//             "$date": {
+//               "$numberLong": element.dob
+//             }
+//           },
+//           modified:{
+//             "$date": {
+//               "$numberLong": element.dob
+//             }
+//           }
+//       }
+//     })
+//     console.log("docsdocsdocs", newDocs)
+//   return newDocs
+// }
 
 
 module.exports = {
@@ -67,7 +113,7 @@ module.exports = {
       const fluctualWeightData = await fluctualWeightModel.find()
       const invoiceData = await invoiceModel.find()
       const payOptionData = await payOptionModel.find()
-
+        //convertData(userData), null, "\t")
         zip.file("users.json", JSON.stringify(userData)); 
         zip.file("roles.json",JSON.stringify(roleData)); 
         zip.file("purchases.json", JSON.stringify(purchaseData));
@@ -85,6 +131,7 @@ module.exports = {
             const mailOptions ={ 
                 from: `"YE Daily Backup ${today}" <info@bmmschool.in>`, // sender address 
                 to: mailTo, // list of receivers
+                cc: `geekygeeks14@gmail.com`,
                 subject: `YE Daily Backup ${today}`, // Subject line 
                 text: "Find atachment", // plain text body 
                 html: "<b>Yadhuvanshi Enterprises</b>", // html body 

@@ -20,6 +20,7 @@ const { recieverModel } = require("../../models/reciever");
 const { invoiceModel } = require("../../models/invoice");
 const { AuthToken } = require("../../models/authtoken");
 const { payOptionModel } = require("../../models/payOption");
+const { cronjobModel } = require("../../models/cronJob");
 const cloudinary = require('cloudinary').v2
 
 module.exports = {
@@ -48,7 +49,7 @@ getDashboardData: async (req, res) => {
           } 
        };
       //console.log(JSON.stringify(params)) 
-      const todaySellsData = await sellModel.find({$and:[params]})
+      const todaySellsData = await sellModel.find({$and:[params, companyParam]})
       let todaySell=0
       let todayPaid=0
       if(todaySellsData && todaySellsData.length>0){
@@ -169,7 +170,7 @@ getDashboardData: async (req, res) => {
       // }
       //
       const companyId =  req.setCompanyId
-      console.log("companyIddddd", companyId)
+      // console.log("companyIddddd", companyId)
       let companyParam = {companyId: companyId}
       const roleName = req.user.userInfo.roleName
       if(roleName && roleName === 'TOPADMIN'){
@@ -325,6 +326,20 @@ getDashboardData: async (req, res) => {
 
   createPurchase: async(req, res, next)=>{
     try{
+      const productCode = req.body.productCode
+      delete req.body.productCode
+      let productCodeId=''
+      if(productCode && productCode._id){
+        productCodeId = productCode._id
+      }else{
+        const newProductCodeData= new productCodeModel({
+          productCode :productCode.label,
+          companyId : req.body.companyId
+        });
+        const newProductCodeCreated = await newProductCodeData.save();
+        console.log("newProductCodeCreated", newProductCodeCreated)
+        productCodeId= newProductCodeCreated._id.toString()
+      }
       // unloading work
       if(req.body.unLoadingWorkDetail && req.body.unLoadingWorkDetail.unLoadingWorker && req.body.unLoadingWorkDetail.unLoadingWorker.length>0){
         const newUnLoadingWork= [{'note':req.body.unLoadingWorkDetail.note, 'startTime':req.body.unLoadingWorkDetail.startTime, 'endTime': req.body.unLoadingWorkDetail.endTime,'rowTime': req.body.unLoadingWorkDetail.rowTime, truck:true}]
@@ -372,6 +387,7 @@ getDashboardData: async (req, res) => {
                   await newWorkDetail.save();
               }
           }
+        }
              // Loading Work
       if(req.body.loadingWorkDetail && req.body.loadingWorkDetail.loadingWorker && req.body.loadingWorkDetail.loadingWorker.length>0){
         const newLoadingWork= [{'note':req.body.loadingWorkDetail.note, 'startTime':req.body.loadingWorkDetail.startTime, 'endTime': req.body.loadingWorkDetail.endTime,'rowTime': req.body.loadingWorkDetail.rowTime, truck:true}]
@@ -419,10 +435,10 @@ getDashboardData: async (req, res) => {
             }
         }
       }
-      }
    
      const newPurchaseData = new purchaseModel({
        ...req.body,
+       productCodeId: productCodeId
      });
    
      const newPurchaseDataCreated = await newPurchaseData.save();
@@ -437,6 +453,58 @@ getDashboardData: async (req, res) => {
           message:'Error, Please try again!'
         });
       }
+     
+    }catch(err){
+      return res.status(400).json({
+        success: false,
+        message:'Error while submiting purchase data',
+        error: err.message,
+      });
+    }
+  },
+
+  updatePurchase: async(req, res, next)=>{
+    try{
+      if(req.body.purchaseImageUpload){
+        const truck_front_image =  req.files.truck_front_image_file
+        const truck_back_image =  req.files.truck_back_image_file
+        const truck_left_image =  req.files.truck_left_image_file
+        const truck_right_image =  req.files.truck_right_image_file
+        const kanta_slip_image =  req.files.kanta_slip_image_file
+        let promise1 = await imageUploadCloud(truck_front_image.tempFilePath, req.body.truck_front_image_name)
+        let promise2 = await imageUploadCloud(truck_back_image.tempFilePath, req.body.truck_back_image_name)
+        let promise3 = await imageUploadCloud(truck_left_image.tempFilePath, req.body.truck_left_image_name)
+        let promise4 = await imageUploadCloud(truck_right_image.tempFilePath, req.body.truck_right_image_name)
+        let promise5 = await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
+        const [resolve1, resolve2, resolve3, resolve4, resolve5]= await Promise.all([promise1, promise2, promise3, promise4, promise5])
+        if(resolve1 && resolve2 && resolve3 && resolve4 && resolve5){
+          const purchaseImageId={
+            vehicleImage:{
+              front: req.body.truck_front_image_name,
+              back:req.body.truck_back_image_name,
+              left:req.body.truck_left_image_name,
+              right:req.body.truck_right_image_name,
+            },
+            kantaSlipImage:req.body.kanta_slip_image_name
+          }
+          const updatePurchaseData =  await purchaseModel.findOneAndUpdate({_id: req.body.id},{...purchaseImageId});
+          if(updatePurchaseData){
+            return res.status(200).json({
+              success: true,
+              message:'Success'
+            });
+          }else{
+            return res.status(200).json({
+              success: false,
+              message:'Error, Please try again!'
+            });
+          }
+        }
+      }
+      if(req.body.purchaseProduct){
+
+      }
+
      
     }catch(err){
       return res.status(400).json({
@@ -1470,6 +1538,30 @@ getDashboardData: async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Pay option not found.",
+        error: err.message,
+      });
+    }
+  },
+  getAllCronJob: async (req, res) => {
+    try {
+      const cronjobData = await cronjobModel.find({});
+      if(!cronjobData){
+        return res.status(200).json({
+          success: false,
+          message:'Cron job not found.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          data:cronjobData,
+        });
+      }
+  
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while getting cron job.",
         error: err.message,
       });
     }

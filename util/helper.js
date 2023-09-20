@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const { userModel } = require("../models/user");
 const CryptoJS = require('crypto-js');
 const { invoiceModel } = require("../models/invoice");
+const cloudinary = require('cloudinary').v2
 
 
 require("dotenv/config");
@@ -108,5 +109,18 @@ module.exports = {
     const newInvoiceId = currentYear + (invoiceGenNumber+1).toString().padStart(5, '0')
     return newInvoiceId 
   }, 
+  imageUploadCloud:async(file, fileName)=>{
+    let uploaded =false
+    try{
+      cloudinary.uploader.upload(file, {'public_id': fileName, 'resource_type': 'image'},async (error, result) => {
+          if (!error) {
+            uploaded= true
+          }
+      });
+    }catch(err){
+      console.log("err image  upload", err)
+    }
+    return uploaded
+  },
 };
 

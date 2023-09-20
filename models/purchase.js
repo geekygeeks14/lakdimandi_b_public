@@ -13,6 +13,15 @@ const purchaseSchema = new mongoose.Schema({
   loadingWorkDetail:{
     type: JSON,
   },
+  vehicleImage:{
+    type: JSON,
+  },
+  kantaSlipImage:{
+    type: String,
+  },
+  productCodeId:{
+    type: String,
+  },
   totalWeight:{
     type: Number,
   },
