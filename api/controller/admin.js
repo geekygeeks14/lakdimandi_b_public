@@ -14,6 +14,7 @@ const {
   newCompanyIdGen,
   decryptAES,
   newInvoiceIdGenrate,
+  imageUploadCloud,
 } = require("../../util/helper");
 const { workDetailModel } = require("../../models/workDetail");
 const { recieverModel } = require("../../models/reciever");
@@ -465,25 +466,35 @@ getDashboardData: async (req, res) => {
 
   updatePurchase: async(req, res, next)=>{
     try{
-      if(req.body.purchaseImageUpload){
-        const truck_front_image =  req.files.truck_front_image_file
-        const truck_back_image =  req.files.truck_back_image_file
-        const truck_left_image =  req.files.truck_left_image_file
-        const truck_right_image =  req.files.truck_right_image_file
+      if(req.files.vehicle_front_image_file){
+        console.log("eq.files.vehicle_front_image_file", req.files.vehicle_front_image_file)
+        const vehicle_front_image =  req.files.vehicle_front_image_file
+        console.log("req.body.id", req.body.id)
+
+
+        const vehicle_back_image =  req.files.vehicle_back_image_file
+        const vehicle_left_image =  req.files.vehicle_left_image_file
+        const vehicle_right_image =  req.files.vehicle_right_image_file
         const kanta_slip_image =  req.files.kanta_slip_image_file
-        let promise1 = await imageUploadCloud(truck_front_image.tempFilePath, req.body.truck_front_image_name)
-        let promise2 = await imageUploadCloud(truck_back_image.tempFilePath, req.body.truck_back_image_name)
-        let promise3 = await imageUploadCloud(truck_left_image.tempFilePath, req.body.truck_left_image_name)
-        let promise4 = await imageUploadCloud(truck_right_image.tempFilePath, req.body.truck_right_image_name)
+        let promise1 = await imageUploadCloud(vehicle_front_image.tempFilePath, req.body.vehicle_front_image_name)
+        let promise2 = await imageUploadCloud(vehicle_back_image.tempFilePath, req.body.vehicle_back_image_name)
+        let promise3 = await imageUploadCloud(vehicle_left_image.tempFilePath, req.body.vehicle_left_image_name)
+        let promise4 = await imageUploadCloud(vehicle_right_image.tempFilePath, req.body.vehicle_right_image_name)
         let promise5 = await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
+        console.log("promise1promise1", promise1)
+        console.log("promise2promise2", promise2)
+        console.log("promise3promise3", promise3)
+        console.log("promise4promise4", promise4)
+        console.log("promise5promise5", promise5)
         const [resolve1, resolve2, resolve3, resolve4, resolve5]= await Promise.all([promise1, promise2, promise3, promise4, promise5])
-        if(resolve1 && resolve2 && resolve3 && resolve4 && resolve5){
+        // if(promise1 && promise2 && promise3 && promise4 && promise5){
+          console.log("resolved  alll")
           const purchaseImageId={
             vehicleImage:{
-              front: req.body.truck_front_image_name,
-              back:req.body.truck_back_image_name,
-              left:req.body.truck_left_image_name,
-              right:req.body.truck_right_image_name,
+              front: req.body.vehicle_front_image_name,
+              back:req.body.vehicle_back_image_name,
+              left:req.body.vehicle_left_image_name,
+              right:req.body.vehicle_right_image_name,
             },
             kantaSlipImage:req.body.kanta_slip_image_name
           }
@@ -499,7 +510,7 @@ getDashboardData: async (req, res) => {
               message:'Error, Please try again!'
             });
           }
-        }
+        //}
       }
       if(req.body.purchaseProduct){
 
@@ -507,6 +518,7 @@ getDashboardData: async (req, res) => {
 
      
     }catch(err){
+      console.log("errrr", err)
       return res.status(400).json({
         success: false,
         message:'Error while submiting purchase data',

@@ -110,15 +110,18 @@ module.exports = {
     return newInvoiceId 
   }, 
   imageUploadCloud:async(file, fileName)=>{
-    let uploaded =false
+    let uploaded= false
     try{
       cloudinary.uploader.upload(file, {'public_id': fileName, 'resource_type': 'image'},async (error, result) => {
           if (!error) {
             uploaded= true
+          }else{
+            console.log("result", result)
           }
       });
     }catch(err){
       console.log("err image  upload", err)
+      uploaded= false
     }
     return uploaded
   },

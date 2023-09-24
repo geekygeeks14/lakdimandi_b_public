@@ -10,6 +10,7 @@ router.get("/getPasswordById/:id", isAunthaticatedAdmin, admin.getPasswordById);
 router.delete("/deleteUser/:id", isAunthaticatedAdmin, admin.deleteUser);
 router.get("/getDashboardData", isAunthaticatedAdmin, admin.getDashboardData);
 router.post("/submitPurchaseData", isAunthaticatedAdmin, admin.createPurchase);
+router.post("/updatePurchase", isAunthaticatedAdmin, admin.updatePurchase);
 router.post("/submitSellData", isAunthaticatedAdmin, admin.createSell);
 router.post("/updateSellData/:id", isAunthaticatedAdmin, admin.updateSell);
 router.get("/getAllPurchase",isAunthaticatedAdmin, admin.getAllPurchase)
