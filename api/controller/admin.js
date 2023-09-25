@@ -77,6 +77,7 @@ getDashboardData: async (req, res) => {
   }
 },
   getAllSell: async (req, res) => {
+    console.log("kya ye chla")
     //one time query
     // const adminData = await userModel.findOne({'userInfo.roleName':'ADMIN'})
     // const allDataToUpdate = await sellModel.find({ companyId: { $exists: false }});
@@ -89,6 +90,7 @@ getDashboardData: async (req, res) => {
     // }
     //
     let cndPram={}
+    let sendParam={}
     let companyId = req.setCompanyId
     let companyParam={companyId: companyId}
     const roleName = req.user.userInfo.roleName
@@ -132,6 +134,10 @@ getDashboardData: async (req, res) => {
         'sellInfo.breadth':req.query.breadth
       }
     }
+    if(req.query.phone){
+      sendParam={'buyerDetail.phoneNumber1':{$regex : req.query.phone}}
+    }
+    
     if((req.query.dateFilter && req.query.dateFilter==='today') || (roleName && roleName==='ACCOUNTANT')){
       cndPram= 
       {'created': 
@@ -142,7 +148,7 @@ getDashboardData: async (req, res) => {
       }
     }
     try {
-      const sellData = await sellModel.find({$and: [{ deleted: false },companyParam, cndPram]});
+      const sellData = await sellModel.find({$and: [{ deleted: false },companyParam, cndPram,sendParam]});
       return res.status(200).json({
         success: true,
         sellData,
