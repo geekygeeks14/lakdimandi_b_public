@@ -472,56 +472,83 @@ getDashboardData: async (req, res) => {
 
   updatePurchase: async(req, res, next)=>{
     try{
-      if(req.files.vehicle_front_image_file){
-        console.log("eq.files.vehicle_front_image_file", req.files.vehicle_front_image_file)
-        const vehicle_front_image =  req.files.vehicle_front_image_file
-        console.log("req.body.id", req.body.id)
+      let purchaseImageId={}
+      let vehicleImage={}
+      if(!req.body.id){
+        return res.status(200).json({
+          success: false,
+          message:'Purchase id not found.'
+        });
+      }
+      const findPurchaseData =  await purchaseModel.findOne({_id: req.body.id});
 
-
+      if(!findPurchaseData){
+        return res.status(200).json({
+          success: false,
+          message:'Purchase not found.'
+        });
+      }
+   
+      if(req.files && req.files.vehicle_front_image_file){
+          const vehicle_front_image =  req.files.vehicle_front_image_file
+          await imageUploadCloud(vehicle_front_image.tempFilePath, req.body.vehicle_front_image_name)
+          vehicleImage={
+            ...vehicleImage,
+            front: req.body.vehicle_front_image_name,
+          }
+      }
+      if(req.files && req.files.vehicle_back_image_file){
         const vehicle_back_image =  req.files.vehicle_back_image_file
+         await imageUploadCloud(vehicle_back_image.tempFilePath, req.body.vehicle_back_image_name)
+        vehicleImage={
+          ...vehicleImage,
+          back: req.body.vehicle_back_image_name,
+        }
+      }
+      if(req.files && req.files.vehicle_left_image_file){
         const vehicle_left_image =  req.files.vehicle_left_image_file
+        await imageUploadCloud(vehicle_left_image.tempFilePath, req.body.vehicle_left_image_name)
+        vehicleImage={
+          ...vehicleImage,
+          left: req.body.vehicle_left_image_name,
+        }
+      }
+      if(req.files && req.files.vehicle_right_image_file){
         const vehicle_right_image =  req.files.vehicle_right_image_file
+        await imageUploadCloud(vehicle_right_image.tempFilePath, req.body.vehicle_right_image_name)
+        vehicleImage={
+          ...vehicleImage,
+          right: req.body.vehicle_right_image_name,
+        }
+      }
+      if(req.files && req.files.kanta_slip_image_file){
         const kanta_slip_image =  req.files.kanta_slip_image_file
-        let promise1 = await imageUploadCloud(vehicle_front_image.tempFilePath, req.body.vehicle_front_image_name)
-        let promise2 = await imageUploadCloud(vehicle_back_image.tempFilePath, req.body.vehicle_back_image_name)
-        let promise3 = await imageUploadCloud(vehicle_left_image.tempFilePath, req.body.vehicle_left_image_name)
-        let promise4 = await imageUploadCloud(vehicle_right_image.tempFilePath, req.body.vehicle_right_image_name)
-        let promise5 = await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
-        console.log("promise1promise1", promise1)
-        console.log("promise2promise2", promise2)
-        console.log("promise3promise3", promise3)
-        console.log("promise4promise4", promise4)
-        console.log("promise5promise5", promise5)
-        const [resolve1, resolve2, resolve3, resolve4, resolve5]= await Promise.all([promise1, promise2, promise3, promise4, promise5])
-        // if(promise1 && promise2 && promise3 && promise4 && promise5){
-          console.log("resolved  alll")
-          const purchaseImageId={
-            vehicleImage:{
-              front: req.body.vehicle_front_image_name,
-              back:req.body.vehicle_back_image_name,
-              left:req.body.vehicle_left_image_name,
-              right:req.body.vehicle_right_image_name,
-            },
-            kantaSlipImage:req.body.kanta_slip_image_name
-          }
-          const updatePurchaseData =  await purchaseModel.findOneAndUpdate({_id: req.body.id},{...purchaseImageId});
-          if(updatePurchaseData){
-            return res.status(200).json({
-              success: true,
-              message:'Success'
-            });
-          }else{
-            return res.status(200).json({
-              success: false,
-              message:'Error, Please try again!'
-            });
-          }
-        //}
+        await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
+        purchaseImageId={
+          kantaSlipImage: req.body.kanta_slip_image_name,
+        }
+      
       }
-      if(req.body.purchaseProduct){
-
+      const oldVehicleImage= !!findPurchaseData.vehicleImage?findPurchaseData.vehicleImage:{}
+      purchaseImageId={
+        ...purchaseImageId,
+        vehicleImage: {
+          ...oldVehicleImage,
+          ...vehicleImage
+        }
       }
-
+      const updatePurchaseData =  await purchaseModel.findOneAndUpdate({_id: req.body.id},{...purchaseImageId});
+      if(updatePurchaseData){
+        return res.status(200).json({
+          success: true,
+          message:'Success'
+        });
+      }else{
+        return res.status(200).json({
+          success: false,
+          message:'Error, Please try again!'
+        });
+      }
      
     }catch(err){
       console.log("errrr", err)
