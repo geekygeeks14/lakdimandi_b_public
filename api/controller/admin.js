@@ -45,19 +45,20 @@ module.exports = {
 getDashboardData: async (req, res) => {
   try {
 
-    // one time query
-    const allInvoiceData = await invoiceModel.find({})
-    if(allInvoiceData && allInvoiceData.length>0){
-      for(let it of allInvoiceData){
-        if(it.invoiceType === 'NEW SELL PAYMENT'){
-          const foundSellData = await sellModel.findOne({'_id': it.invoiceInfo.sellId.toString()});
-          if(foundSellData){
-            it.invoiceInfo['payInfo']= foundSellData.payInfo
-            await invoiceModel.findOneAndUpdate({_id: it._id},it);
-          }
-        }
-      }
-    }
+    //one time query
+    // const allInvoiceData = await invoiceModel.find({})
+    // if(allInvoiceData && allInvoiceData.length>0){
+    //   for(let it of allInvoiceData){
+    //     if(it && it.invoiceType && it.invoiceType === 'NEW SELL PAYMENT' && it.invoiceInfo && it.invoiceInfo.sellId){
+    //       console.log("it.invoiceInfo.sellId",it.invoiceInfo.sellId)
+    //       const foundSellData = await sellModel.findById({'_id': it.invoiceInfo.sellId.toString()});
+    //       if(foundSellData && foundSellData.payInfo && !it.invoiceInfo.payInfo){
+    //         it.invoiceInfo['payInfo']= foundSellData.payInfo
+    //         await invoiceModel.findOneAndUpdate({_id: it._id},it);
+    //       }
+    //     }
+    //   }
+    // }
     // end one time query
     let companyId = req.setCompanyId
     let companyParam={companyId: companyId}
@@ -68,7 +69,7 @@ getDashboardData: async (req, res) => {
     let date = new Date(req.query.todayDate)
      let date_end = new Date(req.query.todayDate) 
      let startDate = new Date(date.setDate(date.getDate()-1)); 
-     let endDate= new Date(date_end.setDate(date_end.getDate()))
+     let endDate= new Date(date_end.setDate(date_end.getDate()+1))
       startDate.setUTCHours(18); startDate.setUTCMinutes(30); 
       startDate.setSeconds(0); startDate.setMilliseconds(0); 
       endDate.setUTCHours(18); endDate.setUTCMinutes(30); 
@@ -86,7 +87,7 @@ getDashboardData: async (req, res) => {
       let todayPaid=0
       let paidDetail=[]
       if(todaySellsData && todaySellsData.length>0){
-        todaySell =todaySellsData.reduce((acc, curr)=> acc + curr.totalAmount, 0)
+        todaySell =todaySellsData.reduce((acc, curr)=> acc + Number(curr.totalAmount), 0)
         //todayPaid =todaySellsData.reduce((acc, curr)=> acc + curr.paidAmount, 0)
       }
 

@@ -127,18 +127,18 @@ module.exports = {
                 throw error; 
             } 
     
-        await securityLogModel.create({ 
-                activityDateTime: new Date(),
-                activity_type: activityTypeCheck,
-                message: req.body.message?  req.body.message:'',
-                menu_url:req.body.menuUrl,
-                name: (user && user.userInfo )? user.userInfo.fullName: 'N/A', 
-                phoneNumber: (user && user.userInfo ) ? user.userInfo.phoneNumber:'N/A' ,
-                companyId: (user && user.userInfo )? user.userInfo.companyId:'N/A',
-                userId: req.body.userId? req.body.userId:req.ip, 
-                ipAdress: req.ip? req.ip : (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
-                device: req.headers[`user-agent`]
-            }) 
+        // await securityLogModel.create({ 
+        //         activityDateTime: new Date(),
+        //         activity_type: activityTypeCheck,
+        //         message: req.body.message?  req.body.message:'',
+        //         menu_url:req.body.menuUrl,
+        //         name: (user && user.userInfo )? user.userInfo.fullName: 'N/A', 
+        //         phoneNumber: (user && user.userInfo ) ? user.userInfo.phoneNumber:'N/A' ,
+        //         companyId: (user && user.userInfo )? user.userInfo.companyId:'N/A',
+        //         userId: req.body.userId? req.body.userId:req.ip, 
+        //         ipAdress: req.ip? req.ip : (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
+        //         device: req.headers[`user-agent`]
+        //     }) 
             res.status(201).json({ 
                 status: 'success', 
                 message: 'Logs created'
