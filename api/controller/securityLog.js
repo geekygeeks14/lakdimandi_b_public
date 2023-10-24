@@ -112,7 +112,6 @@ module.exports = {
         }
     },
     savelog: async (req, res, next) => {
-        console.log("ippppppppppppp", req.ip)
         try {
             const user = await userModel.findById(req.body.userId); 
             if (!user) { 

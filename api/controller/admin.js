@@ -44,6 +44,21 @@ module.exports = {
  
 getDashboardData: async (req, res) => {
   try {
+
+    // one time query
+    const allInvoiceData = await invoiceModel.find({})
+    if(allInvoiceData && allInvoiceData.length>0){
+      for(let it of allInvoiceData){
+        if(it.invoiceType === 'NEW SELL PAYMENT'){
+          const foundSellData = await sellModel.findOne({'_id': it.invoiceInfo.sellId.toString()});
+          if(foundSellData){
+            it.invoiceInfo['payInfo']= foundSellData.payInfo
+            await invoiceModel.findOneAndUpdate({_id: it._id},it);
+          }
+        }
+      }
+    }
+    // end one time query
     let companyId = req.setCompanyId
     let companyParam={companyId: companyId}
     const roleName = req.user.userInfo.roleName
@@ -218,7 +233,7 @@ getDashboardData: async (req, res) => {
   getAllPurchase: async (req, res) => {
     try {
 
-      //one time query
+     // one time query
       // const adminData = await userModel.findOne({'userInfo.roleName':'ADMIN'})
       // const allDataToUpdate = await purchaseModel.find({ companyId: { $exists: false }});
       // const adminCompanyId =  req.setCompanyId
@@ -228,7 +243,7 @@ getDashboardData: async (req, res) => {
       //     await purchaseModel.findOneAndUpdate({_id: currentData._id},{ companyId: adminCompanyId},{insertedBy: adminData._id.toString()});
       //   }
       // }
-      //
+      
       const companyId =  req.setCompanyId
       // console.log("companyIddddd", companyId)
       let companyParam = {companyId: companyId}
@@ -269,15 +284,12 @@ getDashboardData: async (req, res) => {
       });
      const newSellDataCreated = await newSellData.save();
       if(newSellDataCreated){
-        for(it of newSellDataCreated.sellInfo){
+        for(const it of newSellDataCreated.sellInfo){
           //let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.purchaseProduct.productNameId},{productCodeId:it.purchaseProduct.productCodeId},{length:it.purchaseProduct.length},{breadth: it.purchaseProduct.breadth},{height:it.purchaseProduct.height}]})
           let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.productNameId},{productCodeId:it.productCodeId}]})
           if(foundProduct){
-            console.log("foundProductttttttttttttttttt",foundProduct)
-              const updatedQty= Number(foundProduct.qty) - Number(it.qty)
-              console.log("updatedQtyupdatedQtyupdatedQty===========", updatedQty)
+            const updatedQty= Number(foundProduct.qty) - Number(it.qty)
              const dddddddd= await inventoryModel.findOneAndUpdate({_id: foundProduct._id},{'qty':updatedQty});
-             console.log("dddddddd+++++++++++++++++++++++++++++", dddddddd)
           }
         }
         newInvoiceInfo['invoiceInfo'] = {
@@ -339,7 +351,8 @@ getDashboardData: async (req, res) => {
         newInvoiceInfo['invoiceInfo'] = {
           paidAmount: parseFloat(req.body.duePaidAmount),
           dueAmount :req.body.restDueAmount,
-          sellId: sellData._id
+          sellId: sellData._id,
+          payInfo: req.body.payInfo
         }
         newInvoiceInfo['invoiceType'] ='DUE SELL PAYMENT'
         newInvoiceInfo['paidStatus'] = true
