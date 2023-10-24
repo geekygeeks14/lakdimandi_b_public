@@ -4,9 +4,7 @@ const purchaseSchema = new mongoose.Schema({
   purchaseBasicInfo:{
     type: JSON,
   },
-  purchaseProduct:{
-    type: JSON,
-  },
+  purchaseProduct:[],
   unLoadingWorkDetail:{
     type: JSON,
   },

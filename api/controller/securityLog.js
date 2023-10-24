@@ -85,10 +85,10 @@ module.exports = {
         if(roleName && (roleName==='TOPADMIN' || roleName==='SUPER_ADMIN')){
           companyParam = {}
         }
-        let logType = req.params.logType || 'all'
+        let logType = req.query.logType || 'all'
         let limit = req.query.limit && parseInt(req.query.limit) > 0 ? parseInt(req.query.limit): 0;
         if(logType === 'all') {
-            securityLogModel.find(companyParam).sort({_id:-1}).limit(limit).exec( async(err, data) => {
+            securityLogModel.find(companyParam).sort({_id:1}).limit(limit).exec( async(err, data) => {
                 if (err) {
                     next(err);
                 } else {
@@ -104,7 +104,7 @@ module.exports = {
                 if(err) {
                     next(err)
                 } else {
-                    result.sort((a, b) => b.activity_date_time - a.activity_date_time)
+                    result.sort((a, b) => new Date(a.activity_date_time) -new Date(b.activity_date_time) )
                     const setLogs = await  setDescription(result)
                     res.json({status: "success", data:setLogs});
                 }
@@ -112,6 +112,7 @@ module.exports = {
         }
     },
     savelog: async (req, res, next) => {
+        console.log("ippppppppppppp", req.ip)
         try {
             const user = await userModel.findById(req.body.userId); 
             if (!user) { 
@@ -132,11 +133,11 @@ module.exports = {
                 activity_type: activityTypeCheck,
                 message: req.body.message?  req.body.message:'',
                 menu_url:req.body.menuUrl,
-                name: user.userInfo.fullName, 
-                phoneNumber: user.userInfo.phoneNumber,
-                companyId: user.userInfo.companyId,
-                userId: req.body.userId, 
-                ipAdress: (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
+                name: (user && user.userInfo )? user.userInfo.fullName: 'N/A', 
+                phoneNumber: (user && user.userInfo ) ? user.userInfo.phoneNumber:'N/A' ,
+                companyId: (user && user.userInfo )? user.userInfo.companyId:'N/A',
+                userId: req.body.userId? req.body.userId:req.ip, 
+                ipAdress: req.ip? req.ip : (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress,
                 device: req.headers[`user-agent`]
             }) 
             res.status(201).json({ 

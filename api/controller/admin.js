@@ -22,7 +22,22 @@ const { invoiceModel } = require("../../models/invoice");
 const { AuthToken } = require("../../models/authtoken");
 const { payOptionModel } = require("../../models/payOption");
 const { cronjobModel } = require("../../models/cronJob");
+const { inventoryModel } = require("../../models/inventory");
 const cloudinary = require('cloudinary').v2
+
+const groupedSumFunc=(data) => {
+    const groupedSum = data.reduce((result, item) => {
+      const { payMode, amount } = item;
+      // Check if the category key exists in the result object
+      if (!result[payMode]) {
+        result[payMode] = 0; // Initialize the sum to 0 for a new category
+      }
+      result[payMode] += Number(amount); // Add the value to the sum for the category
+      return result;
+    }, {});
+    return groupedSum
+}
+
 
 module.exports = {
 
@@ -43,24 +58,62 @@ getDashboardData: async (req, res) => {
       startDate.setSeconds(0); startDate.setMilliseconds(0); 
       endDate.setUTCHours(18); endDate.setUTCMinutes(30); 
       endDate.setSeconds(0); endDate.setMilliseconds(0); 
-      params = { 
+      const todayParams = { 
         'created': 
           { "$gte": startDate, 
             "$lte": endDate
           } 
        };
       //console.log(JSON.stringify(params)) 
-      const todaySellsData = await sellModel.find({$and:[params, companyParam]})
+      const todaySellsData = await sellModel.find({$and:[todayParams, companyParam]})
+      const allPaymentType= await payOptionModel.find(companyParam)
       let todaySell=0
       let todayPaid=0
+      let paidDetail=[]
       if(todaySellsData && todaySellsData.length>0){
         todaySell =todaySellsData.reduce((acc, curr)=> acc + curr.totalAmount, 0)
-        todayPaid =todaySellsData.reduce((acc, curr)=> acc + curr.paidAmount, 0)
+        //todayPaid =todaySellsData.reduce((acc, curr)=> acc + curr.paidAmount, 0)
       }
+
+      const todayInvoiceData = await invoiceModel.find({$and:[todayParams, companyParam]}) 
+        if(todayInvoiceData && todayInvoiceData.length>0){
+
+           todayPaid =todayInvoiceData.reduce((acc, curr)=> acc + Number(curr.invoiceInfo.paidAmount), 0)
+           let allTodayPayInfo= []
+          
+           for (const it of todayInvoiceData) {
+             if(it.invoiceInfo && it.invoiceInfo.payInfo && it.invoiceInfo.payInfo.length>0){
+                allTodayPayInfo=[...allTodayPayInfo, ...it.invoiceInfo.payInfo]
+             }
+           }
+           const groupedSumData= groupedSumFunc(allTodayPayInfo)
+           if(groupedSumData && Object.keys(groupedSumData).length>0 ){
+
+            paidDetail = Object.keys(groupedSumData).map(key => {
+              const originalKey = key
+              if(allPaymentType && allPaymentType.length>0 && key.toLowerCase()!=='cash'){
+                  const fondPayType = allPaymentType.find(data=> data._id.toString() === key)
+                 let newKey= fondPayType ? fondPayType.payMethod==='BANK'?fondPayType.payOptionInfo.bankName: fondPayType.payOptionInfo.upiType:key
+                return { 
+                  key   : newKey,
+                  value : groupedSumData[key],
+                  online: true
+                 };
+              }else{
+                return { 
+                  key ,
+                  value : groupedSumData[key],
+                  online: false
+                };
+              }
+            });
+           }
+        }
       const dashboardData={
         todaySell : todaySell.toString(),
         todayPaid : todayPaid.toString(),
-        todayDue  : (todaySell-todayPaid).toString()
+        todayDue  : (todaySell-todayPaid).toString(),
+        paidDetail
       }
      
     return res.status(200).json({
@@ -71,7 +124,7 @@ getDashboardData: async (req, res) => {
     console.log(err);
     return res.status(400).json({
       success: false,
-      message: "Error while getting sell data.",
+      message: "Error while getting dashboard data.",
       error: err.message,
     });
   }
@@ -216,14 +269,27 @@ getDashboardData: async (req, res) => {
       });
      const newSellDataCreated = await newSellData.save();
       if(newSellDataCreated){
+        for(it of newSellDataCreated.sellInfo){
+          //let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.purchaseProduct.productNameId},{productCodeId:it.purchaseProduct.productCodeId},{length:it.purchaseProduct.length},{breadth: it.purchaseProduct.breadth},{height:it.purchaseProduct.height}]})
+          let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.productNameId},{productCodeId:it.productCodeId}]})
+          if(foundProduct){
+            console.log("foundProductttttttttttttttttt",foundProduct)
+              const updatedQty= Number(foundProduct.qty) - Number(it.qty)
+              console.log("updatedQtyupdatedQtyupdatedQty===========", updatedQty)
+             const dddddddd= await inventoryModel.findOneAndUpdate({_id: foundProduct._id},{'qty':updatedQty});
+             console.log("dddddddd+++++++++++++++++++++++++++++", dddddddd)
+          }
+        }
         newInvoiceInfo['invoiceInfo'] = {
           paidAmount: parseFloat(req.body.paidAmount),
           dueAmount :req.body.dueAmount,
-          sellId: newSellDataCreated._id
+          sellId: newSellDataCreated._id,
+          payInfo: payInfo
         }
+        newInvoiceInfo['transactionType'] ='CREDIT'
         newInvoiceInfo['invoiceType'] ='NEW SELL PAYMENT'
         newInvoiceInfo['paidStatus'] = true
-        newInvoiceInfo['companyId'] = newSellDataCreated.companyId
+        newInvoiceInfo['companyId'] = newSellDataCreated.companyId? newSellDataCreated.companyId:'N/A'
         newInvoiceInfo['invoiceId'] = newInvoiceIdGen
         newInvoiceInfo['insertedBy'] = req.body.insertedBy
         const newInvoiceCreate = await newInvoiceInfo.save();
@@ -246,7 +312,6 @@ getDashboardData: async (req, res) => {
         error: err.message,
       });
     }
-  
   },
   updateSell: async(req, res, next)=>{
     try{
@@ -481,74 +546,105 @@ getDashboardData: async (req, res) => {
         });
       }
       const findPurchaseData =  await purchaseModel.findOne({_id: req.body.id});
-
+      delete req.body.id
       if(!findPurchaseData){
         return res.status(200).json({
           success: false,
           message:'Purchase not found.'
         });
       }
-   
-      if(req.files && req.files.vehicle_front_image_file){
-          const vehicle_front_image =  req.files.vehicle_front_image_file
-          await imageUploadCloud(vehicle_front_image.tempFilePath, req.body.vehicle_front_image_name)
-          vehicleImage={
-            ...vehicleImage,
-            front: req.body.vehicle_front_image_name,
-          }
-      }
-      if(req.files && req.files.vehicle_back_image_file){
-        const vehicle_back_image =  req.files.vehicle_back_image_file
-         await imageUploadCloud(vehicle_back_image.tempFilePath, req.body.vehicle_back_image_name)
-        vehicleImage={
-          ...vehicleImage,
-          back: req.body.vehicle_back_image_name,
+      if(req.files){
+              if(req.files.vehicle_front_image_file){
+                const vehicle_front_image =  req.files.vehicle_front_image_file
+                await imageUploadCloud(vehicle_front_image.tempFilePath, req.body.vehicle_front_image_name)
+                vehicleImage={
+                  ...vehicleImage,
+                  front: req.body.vehicle_front_image_name,
+                }
+              }
+              if(req.files.vehicle_back_image_file){
+                const vehicle_back_image =  req.files.vehicle_back_image_file
+                await imageUploadCloud(vehicle_back_image.tempFilePath, req.body.vehicle_back_image_name)
+                vehicleImage={
+                  ...vehicleImage,
+                  back: req.body.vehicle_back_image_name,
+                }
+              }
+              if(req.files.vehicle_left_image_file){
+                const vehicle_left_image =  req.files.vehicle_left_image_file
+                await imageUploadCloud(vehicle_left_image.tempFilePath, req.body.vehicle_left_image_name)
+                vehicleImage={
+                  ...vehicleImage,
+                  left: req.body.vehicle_left_image_name,
+                }
+              }
+              if(req.files.vehicle_right_image_file){
+                const vehicle_right_image =  req.files.vehicle_right_image_file
+                await imageUploadCloud(vehicle_right_image.tempFilePath, req.body.vehicle_right_image_name)
+                vehicleImage={
+                  ...vehicleImage,
+                  right: req.body.vehicle_right_image_name,
+                }
+              }
+              if(req.files.kanta_slip_image_file){
+                const kanta_slip_image =  req.files.kanta_slip_image_file
+                await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
+                purchaseImageId={
+                  kantaSlipImage: req.body.kanta_slip_image_name,
+                }
+              
+              }
+              const oldVehicleImage= !!findPurchaseData.vehicleImage?findPurchaseData.vehicleImage:{}
+              purchaseImageId={
+                ...purchaseImageId,
+                vehicleImage: {
+                  ...oldVehicleImage,
+                  ...vehicleImage
+                }
+              }
+              const updatePurchaseData =  await purchaseModel.findOneAndUpdate({_id: findPurchaseData._id},{...purchaseImageId});
+              if(updatePurchaseData){
+                return res.status(200).json({
+                  success: true,
+                  message:'Success'
+                });
+              }else{
+                return res.status(400).json({
+                  success: false,
+                  message:'Image not uploaded, Please try again!'
+                });
+              }
+        }else{
+              for (const it of req.body.purchaseProduct) {
+                 let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.productNameId},{productCodeId:it.productCodeId},{length:it.length},{breadth: it.breadth},{height:it.height}]})
+                 if(foundProduct){
+                    foundProduct.qty= Number(foundProduct.qty) + Number(it.qty)
+                    await inventoryModel.findOneAndUpdate({_id: foundProduct._id},foundProduct);
+                 }else{
+                  const newInvetoryData= new inventoryModel({
+                      ...it,
+                      companyId:findPurchaseData.companyId,
+                  });
+                   await newInvetoryData.save();
+                 }
+              }
+              let oldPurchaseData=findPurchaseData.purchaseProduct && findPurchaseData.purchaseProduct.length>0?findPurchaseData.purchaseProduct:[]
+              findPurchaseData.purchaseProduct= [...oldPurchaseData, ...req.body.purchaseProduct]
+              const updatePurchaseData = await purchaseModel.findOneAndUpdate({_id: findPurchaseData._id},findPurchaseData);
+              
+              if(updatePurchaseData){
+                return res.status(200).json({
+                  success: true,
+                  message:'Success'
+                });
+              }else{
+                return res.status(400).json({
+                  success: false,
+                  message:'Producct not added, Please try again!'
+                });
+              }
         }
-      }
-      if(req.files && req.files.vehicle_left_image_file){
-        const vehicle_left_image =  req.files.vehicle_left_image_file
-        await imageUploadCloud(vehicle_left_image.tempFilePath, req.body.vehicle_left_image_name)
-        vehicleImage={
-          ...vehicleImage,
-          left: req.body.vehicle_left_image_name,
-        }
-      }
-      if(req.files && req.files.vehicle_right_image_file){
-        const vehicle_right_image =  req.files.vehicle_right_image_file
-        await imageUploadCloud(vehicle_right_image.tempFilePath, req.body.vehicle_right_image_name)
-        vehicleImage={
-          ...vehicleImage,
-          right: req.body.vehicle_right_image_name,
-        }
-      }
-      if(req.files && req.files.kanta_slip_image_file){
-        const kanta_slip_image =  req.files.kanta_slip_image_file
-        await imageUploadCloud(kanta_slip_image.tempFilePath, req.body.kanta_slip_image_name)
-        purchaseImageId={
-          kantaSlipImage: req.body.kanta_slip_image_name,
-        }
-      
-      }
-      const oldVehicleImage= !!findPurchaseData.vehicleImage?findPurchaseData.vehicleImage:{}
-      purchaseImageId={
-        ...purchaseImageId,
-        vehicleImage: {
-          ...oldVehicleImage,
-          ...vehicleImage
-        }
-      }
-      const updatePurchaseData =  await purchaseModel.findOneAndUpdate({_id: req.body.id},{...purchaseImageId});
-      if(updatePurchaseData){
-        return res.status(200).json({
-          success: true,
-          message:'Success'
-        });
-      }else{
-        return res.status(200).json({
-          success: false,
-          message:'Error, Please try again!'
-        });
-      }
+
      
     }catch(err){
       console.log("errrr", err)
@@ -625,11 +721,38 @@ getDashboardData: async (req, res) => {
   },
   deletePurchaseData: async (req, res) => {
     try {
-      await purchaseModel.findOneAndUpdate({_id: req.params.id},{deleted:true});
-      return res.status(200).json({
-        success: true,
-        message:`Deleted succesfully.`,
-      });
+      const foundPurchase= await purchaseModel.findOne({_id: req.params.id});
+      if(!foundPurchase){
+        return res.status(200).json({
+          success: false,
+          message:'Purchase data not found.'
+        });
+      }else{
+        if(foundPurchase.purchaseProduct && foundPurchase.purchaseProduct.length>0){
+          for (const it of foundPurchase.purchaseProduct) {
+            if(it.deleted===false){
+              let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.productNameId},{productCodeId:it.productCodeId},{length:it.length},{breadth: it.breadth},{height:it.height}]})
+              if(foundProduct){
+                  foundProduct.qty = Number(foundProduct.qty) - Number(it.qty)
+                  if((Number(foundProduct.qty))<0){
+                    //  return res.status(200).json({
+                    //   success: false,
+                    //   message:'Product inventory qty less than zero.'
+                    // });
+                  }else{
+                    await inventoryModel.findOneAndUpdate({_id: foundProduct._id},foundProduct);
+                  }
+              }
+            }
+          }
+        }
+        await purchaseModel.findOneAndUpdate({_id: req.params.id},{deleted:true, modified: true});
+        return res.status(200).json({
+          success: true,
+          message:`Deleted succesfully.`,
+        });
+      }
+
     } catch (err) {
       console.log(err);
       return res.status(400).json({
@@ -1607,6 +1730,147 @@ getDashboardData: async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Error while getting cron job.",
+        error: err.message,
+      });
+    }
+  },
+  getAllInventory: async (req, res) => {
+    try {
+      let companyId = req.setCompanyId
+      let companyParam={companyId: companyId}
+      const roleName = req.user.userInfo.roleName
+      if(roleName&& roleName==='TOPADMIN'){
+        companyParam= {}
+      }
+      const productNameData= await productNameModel.find(companyParam)
+      const productCodeData= await productCodeModel.find(companyParam)
+      const inventoryData = await inventoryModel.find(companyParam);
+      if(!inventoryData){
+        return res.status(200).json({
+          success: false,
+          message:'Inventory data not found.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          data:{
+            inventoryData,
+            productNameData,
+            productCodeData
+          }
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while getting cron job.",
+        error: err.message,
+      });
+    }
+  },
+  addNewInventory: async (req, res) => {
+    try {
+      const newInvetoryData= new inventoryModel({
+        ...req.body,
+      });
+     const newInvetoryCreated = await newInvetoryData.save();
+  
+      if(!newInvetoryCreated){
+        return res.status(200).json({
+          success: false,
+          message:'Inventory data not found.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          message: 'New inventory created.'
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while creating new inventory.",
+        error: err.message,
+      });
+    }
+  },
+  deleteInventory: async (req, res) => {
+    try {
+     const invetoryUpdated = await inventoryModel.findOneAndUpdate({_id: req.query.id},{deleted: true, modified: new Date()});
+      if(!invetoryUpdated){
+        return res.status(200).json({
+          success: false,
+          message:'Inventory not updated.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          message: 'Inventory updated.'
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while updating inventory.",
+        error: err.message,
+      });
+    }
+  },
+  
+  deletePurchaseProduct: async (req, res) => {
+    try {
+      const foundPurchase= await purchaseModel.findOne({_id: req.body.id})
+      if(!foundPurchase){
+        return res.status(200).json({
+          success: false,
+          message:'Purchase detail not found.'
+        });
+      }else{
+        const selectedProduct= req.body.selectedProduct
+      
+        foundPurchase.purchaseProduct=foundPurchase.purchaseProduct.map(data=> {
+          if(data.randomId === selectedProduct.randomId){
+              return{
+                ...data,
+                deleted: false,
+                modified: new Date()
+              }
+            }else{
+              return data
+            }
+          })
+        
+        let foundProduct= await inventoryModel.findOne({$and:[{productNameId: selectedProduct.productNameId},{productCodeId:selectedProduct.productCodeId},{length:selectedProduct.length},{breadth: selectedProduct.breadth},{height:selectedProduct.height}]})
+        if(foundProduct){
+            foundProduct.qty= Number(foundProduct.qty) - Number(selectedProduct.qty)
+            if((Number(foundProduct.qty))<0){
+               return res.status(200).json({
+                success: false,
+                message:'Product inventory qty less than zero.'
+              });
+            }else{
+              await inventoryModel.findOneAndUpdate({_id: foundProduct._id},foundProduct);
+              await purchaseModel.findOneAndUpdate({_id: req.body.id},foundPurchase)
+                return res.status(200).json({
+                  success: true,
+                  message: 'New inventory created.'
+                });
+            }
+        }else{
+          return res.status(200).json({
+            success: false,
+            message:'Product inventory not found.'
+          });
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while deleting purchase product.",
         error: err.message,
       });
     }

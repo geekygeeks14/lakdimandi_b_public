@@ -42,5 +42,7 @@ router.post("/updatePayOption/:id", isAunthaticatedAdmin, admin.updatePayOption)
 router.delete("/deletePayOption/:id", isAunthaticatedAdmin, admin.deletePayOption);
 router.get("/getAllCronJob", isAunthaticatedAdmin, admin.getAllCronJob);
 router.post("/uploadImage", admin.uploadImage);
+router.get("/getAllInventory", isAunthaticatedAdmin, admin.getAllInventory);
+router.post("/addNewInventory", isAunthaticatedAdmin, admin.addNewInventory);
 
 module.exports = router;
