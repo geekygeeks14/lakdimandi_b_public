@@ -85,28 +85,87 @@ module.exports = {
         if(roleName && (roleName==='TOPADMIN' || roleName==='SUPER_ADMIN')){
           companyParam = {}
         }
+        let dateParams={}
+        let pageNumber= req.query.pageNumber? parseInt(req.query.pageNumber):0
         let logType = req.query.logType || 'all'
-        let limit = req.query.limit && parseInt(req.query.limit) > 0 ? parseInt(req.query.limit): 0;
+        if (req.query && req.query.startDate && req.query.startDate != ''  && req.query.endDate && req.query.endDate !='') {
+            let date = new Date(req.query.startDate)
+            let startDate = new Date(date.setDate(date.getDate()));
+            let eDate = new Date(req.query.endDate)
+            let endDate = new Date(eDate.setDate(eDate.getDate()+1));
+            startDate.setUTCHours(18);
+            startDate.setUTCMinutes(30);
+            startDate.setSeconds(0);
+            startDate.setMilliseconds(0);
+            endDate.setUTCHours(18);
+            endDate.setUTCMinutes(30);
+            endDate.setSeconds(0);
+            endDate.setMilliseconds(0);
+            dateParams = {
+                'created': {
+                    "$gte": startDate,
+                    "$lte": endDate? endDate:new Date(req.query.endDate + ' 23:59:59')
+                }
+            };
+        }else {
+            if (req.query && req.query.startDate && req.query.startDate != '') {
+                let startDate = ''
+                if (!!req.query.startDate) {
+                    let date = new Date(req.query.startDate)
+                    //startDate = new Date(date.setDate(date.getDate()+1));
+                    startDate = new Date(date.setDate(date.getDate()));
+                    startDate.setUTCHours(18);
+                    startDate.setUTCMinutes(30);
+                    startDate.setSeconds(0);
+                    startDate.setMilliseconds(0);
+                }
+                dateParams = {
+                    'created': {
+                        "$gte": !!startDate ? startDate : new Date(req.query.startDate)
+                    }
+                }
+            }
+        }
+        // console.log("ggggggggggggggggg", JSON.stringify(dateParams,null, 2))
+        let limit = req.query.limit && parseInt(req.query.limit) > 0 ? parseInt(req.query.limit): 10;
         if(logType === 'all') {
-            securityLogModel.find(companyParam).sort({_id:1}).limit(limit).exec( async(err, data) => {
+            const param={$and:[ dateParams]}
+            const count =  await securityLogModel.countDocuments(param)
+            const pageSize= Math.ceil(count/limit)
+             //console.log("11111111111111111111111111", JSON.stringify(param,null, 2))   
+            securityLogModel.find(dateParams).sort({_id:1}).limit(limit).skip(limit*pageNumber).exec( async(err, data) => {
                 if (err) {
                     next(err);
                 } else {
                     const setLogs = await  setDescription(data)
-                    res.json({status: "success", data:setLogs});
+                    res.json({ 
+                        success: true, 
+                        data:setLogs,
+                        count: count,
+                        pageSize: pageSize
+                    });
                 }
             })
         } else {
-            const param={
+            const logTypeParam={
                 'activity_type': logType
             }
-            securityLogModel.find(param,async function (err, result)  {
+            const param={$and:[logTypeParam, dateParams]}
+            const count =  await securityLogModel.countDocuments(param)
+            const pageSize= Math.ceil(count/limit)
+
+            securityLogModel.find(param).limit(limit).skip(limit*pageNumber).exec(async function (err, result)  {
                 if(err) {
                     next(err)
                 } else {
                     result.sort((a, b) => new Date(a.activity_date_time) -new Date(b.activity_date_time) )
                     const setLogs = await  setDescription(result)
-                    res.json({status: "success", data:setLogs});
+                    res.json({
+                         success: true, 
+                         data:setLogs,
+                         count: count,
+                         pageSize: pageSize
+                        });
                 }
             })
         }
@@ -140,7 +199,7 @@ module.exports = {
                 device: req.headers[`user-agent`]
             }) 
             res.status(201).json({ 
-                status: 'success', 
+                success: true, 
                 message: 'Logs created'
             }); 
         } catch (err) { 
