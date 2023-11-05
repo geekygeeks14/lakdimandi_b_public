@@ -17,6 +17,13 @@ const inventorySchema = new mongoose.Schema({
   price:{
     type: Number,
   },
+  freeSize:{
+    type: Boolean,
+    default: false,
+  },
+  unit:{
+    type: String,
+  },
   perUnitWeight:{
     type: Number,
   },

@@ -1785,21 +1785,33 @@ getDashboardData: async (req, res) => {
   },
   addNewInventory: async (req, res) => {
     try {
-      const newInvetoryData= new inventoryModel({
-        ...req.body,
-      });
-     const newInvetoryCreated = await newInvetoryData.save();
-  
-      if(!newInvetoryCreated){
-        return res.status(200).json({
-          success: false,
-          message:'Inventory data not found.'
-        });
-      }else{
+      if(req.body.productList && req.body.productList.length>0){
+        for (const it of req.body.productList) {
+          let params={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{freeSize:true}]}
+          if(it.length && it.breadth && it.height){
+            params = await inventoryModel.findOne({$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{length:it.length},{breadth: it.breadth},{height:it.height},{freeSize:false}]})
+          }
+          const foundProduct = await inventoryModel.findOne(params)
+          if(foundProduct){
+              const updatedQty= Number(foundProduct.qty) + Number(it.qty)
+               await inventoryModel.findOneAndUpdate({_id: foundProduct._id},{'qty':updatedQty});
+          }else{
+            const newInvetoryData= new inventoryModel({
+              ...it,
+            });
+            await newInvetoryData.save();
+          }
+        }
         return res.status(200).json({
           success: true,
           message: 'New inventory created.'
         });
+      }else{
+        return res.status(200).json({
+          success: false,
+          message:'Inventory data not found.'
+        });
+
       }
     } catch (err) {
       console.log(err);
@@ -1844,7 +1856,7 @@ getDashboardData: async (req, res) => {
         });
       }else{
         const selectedProduct= req.body.selectedProduct
-      
+        // before change find purchase product then update may be same random id  
         foundPurchase.purchaseProduct=foundPurchase.purchaseProduct.map(data=> {
           if(data.randomId === selectedProduct.randomId){
               return{
@@ -1856,7 +1868,7 @@ getDashboardData: async (req, res) => {
               return data
             }
           })
-        
+        // need to add free size check 
         let foundProduct= await inventoryModel.findOne({$and:[{productNameId: selectedProduct.productNameId},{productCodeId:selectedProduct.productCodeId},{length:selectedProduct.length},{breadth: selectedProduct.breadth},{height:selectedProduct.height}]})
         if(foundProduct){
             foundProduct.qty= Number(foundProduct.qty) - Number(selectedProduct.qty)
@@ -1870,7 +1882,7 @@ getDashboardData: async (req, res) => {
               await purchaseModel.findOneAndUpdate({_id: req.body.id},foundPurchase)
                 return res.status(200).json({
                   success: true,
-                  message: 'New inventory created.'
+                  message: 'Purchase product deleted successfully.'
                 });
             }
         }else{
