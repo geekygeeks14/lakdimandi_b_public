@@ -44,5 +44,7 @@ router.get("/getAllCronJob", isAunthaticatedAdmin, admin.getAllCronJob);
 router.post("/uploadImage", admin.uploadImage);
 router.get("/getAllInventory", isAunthaticatedAdmin, admin.getAllInventory);
 router.post("/addNewInventory", isAunthaticatedAdmin, admin.addNewInventory);
+router.post("/updateInventory", isAunthaticatedAdmin, admin.updateInventory);
+router.delete("/deleteInventory", isAunthaticatedAdmin, admin.deleteInventory);
 
 module.exports = router;

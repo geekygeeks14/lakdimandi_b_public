@@ -630,16 +630,20 @@ getDashboardData: async (req, res) => {
               }
         }else{
               for (const it of req.body.purchaseProduct) {
-                 let foundProduct= await inventoryModel.findOne({$and:[{productNameId: it.productNameId},{productCodeId:it.productCodeId},{length:it.length},{breadth: it.breadth},{height:it.height}]})
+                let params={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{unit:it.unit},{freeSize:true}]}
+                if(it.length && it.breadth && it.height){
+                  params ={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{unit:it.unit},{length:it.length},{breadth: it.breadth},{height:it.height},{freeSize:false}]}
+                }
+                 let foundProduct= await inventoryModel.findOne(params)
                  if(foundProduct){
                     foundProduct.qty= Number(foundProduct.qty) + Number(it.qty)
                     await inventoryModel.findOneAndUpdate({_id: foundProduct._id},foundProduct);
                  }else{
-                  const newInvetoryData= new inventoryModel({
+                  const newInventoryData= new inventoryModel({
                       ...it,
                       companyId:findPurchaseData.companyId,
                   });
-                   await newInvetoryData.save();
+                   await newInventoryData.save();
                  }
               }
               let oldPurchaseData=findPurchaseData.purchaseProduct && findPurchaseData.purchaseProduct.length>0?findPurchaseData.purchaseProduct:[]
@@ -1787,19 +1791,19 @@ getDashboardData: async (req, res) => {
     try {
       if(req.body.productList && req.body.productList.length>0){
         for (const it of req.body.productList) {
-          let params={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{freeSize:true}]}
+          let params={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{unit:it.unit},{freeSize:true}]}
           if(it.length && it.breadth && it.height){
-            params = await inventoryModel.findOne({$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{length:it.length},{breadth: it.breadth},{height:it.height},{freeSize:false}]})
+            params ={$and:[{companyId:it.companyId},{productNameId: it.productNameId},{productCodeId:it.productCodeId},{unit:it.unit},{length:it.length},{breadth: it.breadth},{height:it.height},{freeSize:false}]}
           }
           const foundProduct = await inventoryModel.findOne(params)
           if(foundProduct){
               const updatedQty= Number(foundProduct.qty) + Number(it.qty)
                await inventoryModel.findOneAndUpdate({_id: foundProduct._id},{'qty':updatedQty});
           }else{
-            const newInvetoryData= new inventoryModel({
+            const newInventoryData= new inventoryModel({
               ...it,
             });
-            await newInvetoryData.save();
+            await newInventoryData.save();
           }
         }
         return res.status(200).json({
@@ -1822,25 +1826,80 @@ getDashboardData: async (req, res) => {
       });
     }
   },
-  deleteInventory: async (req, res) => {
+  updateInventory: async (req, res) => {
     try {
-     const invetoryUpdated = await inventoryModel.findOneAndUpdate({_id: req.query.id},{deleted: true, modified: new Date()});
-      if(!invetoryUpdated){
-        return res.status(200).json({
-          success: false,
-          message:'Inventory not updated.'
-        });
+      const id= req.body.id
+      delete req.body.id
+      const inventoryData = await inventoryModel.findOne({_id:id})
+      if(inventoryData){
+        let updatedData={
+          ...inventoryData,
+          ...req.body,
+          modified: new Date()
+        }
+        const newUpdatedInvtoryData =  await inventoryModel.findOneAndUpdate({_id: inventoryData._id},updatedData,{new: true});
+        if(newUpdatedInvtoryData){
+            let params={$and:[{companyId:newUpdatedInvtoryData.companyId},{productNameId: newUpdatedInvtoryData.productNameId},{productCodeId:newUpdatedInvtoryData.productCodeId},{unit:newUpdatedInvtoryData.unit},{freeSize:true}]}
+
+            if(newUpdatedInvtoryData && newUpdatedInvtoryData.freeSize===false){
+              params ={$and:[{companyId:newUpdatedInvtoryData.companyId},{productNameId: newUpdatedInvtoryData.productNameId},{productCodeId:newUpdatedInvtoryData.productCodeId},{unit:newUpdatedInvtoryData.unit},{length:newUpdatedInvtoryData.length},{breadth: newUpdatedInvtoryData.breadth},{height:newUpdatedInvtoryData.height},{freeSize:false}]}
+
+            }
+              const foundProducts = await inventoryModel.find(params)
+            
+            if(foundProducts && foundProducts.length>1){
+              let updatedQty=0
+              for (const it of foundProducts) {
+                updatedQty += Number(it.qty)
+                await inventoryModel.findOneAndUpdate({_id: it._id},{deleted: true, modified: new Date()});
+              }
+                await inventoryModel.findOneAndUpdate({_id: foundProducts[0]._id},{'qty':updatedQty, deleted: false});
+            }
+            return res.status(200).json({
+              success: true,
+              message: 'Inventory updated.'
+            });
+        }else{
+          return res.status(200).json({
+            success: false,
+            message: 'Inventory not updated.'
+          });
+        }
       }else{
         return res.status(200).json({
-          success: true,
-          message: 'Inventory updated.'
+          success: false,
+          message:'Inventory data not found.'
         });
+
       }
     } catch (err) {
       console.log(err);
       return res.status(400).json({
         success: false,
         message: "Error while updating inventory.",
+        error: err.message,
+      });
+    }
+  },
+  deleteInventory: async (req, res) => {
+    try {
+     const inventoryUpdated = await inventoryModel.findOneAndUpdate({_id: req.query.id},{deleted: true, modified: new Date()});
+      if(!inventoryUpdated){
+        return res.status(200).json({
+          success: false,
+          message:'Inventory not deleted.'
+        });
+      }else{
+        return res.status(200).json({
+          success: true,
+          message: 'Inventory deleted.'
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "Error while deleting inventory.",
         error: err.message,
       });
     }
