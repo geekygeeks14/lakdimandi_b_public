@@ -15,7 +15,7 @@ const workDetailSchema = new mongoose.Schema({
   },
   totalMilliSec: {
     type: Number,
-    required: true,
+    default: 0
   },
   loadingWorkList: [],
   unLoadingWorkList: [],
@@ -24,6 +24,12 @@ const workDetailSchema = new mongoose.Schema({
   dateOfWork:{
     type: String,
     required: true,
+  },
+  amount:{
+    type: Number,
+  },
+  perHourRate:{
+    type:Number
   },
   created: {
     type: Date,

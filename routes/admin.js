@@ -5,13 +5,16 @@ const { isAunthaticatedAdmin } = require("../middleware/auth");
 
 router.post("/addUser", isAunthaticatedAdmin, admin.addUser);
 router.post("/updateUser/:id", isAunthaticatedAdmin, admin.updateUserById);
+router.post("/updateStatus", isAunthaticatedAdmin, admin.updateStatus);
 router.get("/getUser", isAunthaticatedAdmin, admin.getAllUsers);
+router.get("/getAllWorker", isAunthaticatedAdmin, admin.getAllWorker);
 router.get("/getPasswordById/:id", isAunthaticatedAdmin, admin.getPasswordById);
 router.delete("/deleteUser/:id", isAunthaticatedAdmin, admin.deleteUser);
 router.get("/getDashboardData", isAunthaticatedAdmin, admin.getDashboardData);
 router.post("/submitPurchaseData", isAunthaticatedAdmin, admin.createPurchase);
 router.post("/updatePurchase", isAunthaticatedAdmin, admin.updatePurchase);
 router.post("/submitSellData", isAunthaticatedAdmin, admin.createSell);
+router.post("/submitNewSellData", isAunthaticatedAdmin, admin.createNewSell);
 router.post("/updateSellData/:id", isAunthaticatedAdmin, admin.updateSell);
 router.get("/getAllPurchase",isAunthaticatedAdmin, admin.getAllPurchase)
 router.get("/getAllSell",isAunthaticatedAdmin, admin.getAllSell)

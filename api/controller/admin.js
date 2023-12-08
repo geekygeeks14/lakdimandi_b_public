@@ -344,13 +344,11 @@ getDashboardData: async (req, res) => {
       });
      const newSellDataCreated = await newSellData.save();
       if(newSellDataCreated){
-        for(const it of req.body.payInfo.sellInfo){  
-            //console.log('ittttttttttttttttttttttttttttttttt',it)
+        for(const it of req.body.sellInfo){  
           let foundInventory= await inventoryModel.findOne({$and:[{_id:it.inventoryId},{deleted:false}]})
-          //console.log("foundInventory",foundInventory)
           if(foundInventory){
             const updatedQty= Number(foundInventory.qty) - Number(it.qty)
-             const dddddddd= await inventoryModel.findOneAndUpdate({_id: foundInventory._id},{'qty':updatedQty});
+            const dddddddd= await inventoryModel.findOneAndUpdate({_id: foundInventory._id},{'qty':updatedQty});
           }
    
         }
@@ -359,7 +357,7 @@ getDashboardData: async (req, res) => {
           dueAmount :req.body.dueAmount,
           sellId: newSellDataCreated._id,
           payInfo: payInfo,
-          sellInfo: req.body.payInfo.sellInfo
+          sellInfo: req.body.sellInfo
         }
         newInvoiceInfo['transactionType'] ='CREDIT'
         newInvoiceInfo['invoiceType'] ='NEW SELL PAYMENT'
@@ -524,13 +522,15 @@ getDashboardData: async (req, res) => {
                  
                 await workDetailModel.findOneAndUpdate({_id: workFound._id},workFound)
               }else{
+                const getWorker= await userModel.findOne({'userInfo.userId': it.userId}) 
                 const newWorkDetail= new workDetailModel({
                   userId: it.userId,
                   unLoadingWorkList: newUnLoadingWork,
                   parentUserId: req.body.unLoadingWorkDetail.parentUserId,
                   companyId: req.body.companyId,
                   totalMilliSec: req.body.unLoadingWorkDetail.rowTime?req.body.unLoadingWorkDetail.rowTime:0,
-                  dateOfWork : req.body.unLoadingWorkDetail.dateOfWork
+                  dateOfWork : req.body.unLoadingWorkDetail.dateOfWork,
+                  perHourRate: getWorker && getWorker.userInfo && getWorker.userInfo.perHourRate? getWorker.userInfo.perHourRate: undefined
                 });
                   await newWorkDetail.save();
               }
@@ -571,13 +571,15 @@ getDashboardData: async (req, res) => {
 
               await workDetailModel.findOneAndUpdate({_id: workFound._id},workFound)
             }else{
+              const getWorker= await userModel.findOne({'userInfo.userId': it.userId})
               const newWorkDetail= new workDetailModel({
                 userId: it.userId,
                 loadingWorkList: newLoadingWork,
                 parentUserId: req.body.loadingWorkDetail.parentUserId,
                 companyId: req.body.companyId,
                 totalMilliSec: req.body.loadingWorkDetail.rowTime?req.body.loadingWorkDetail.rowTime:0,
-                dateOfWork : req.body.loadingWorkDetail.dateOfWork
+                dateOfWork : req.body.loadingWorkDetail.dateOfWork,
+                perHourRate: getWorker && getWorker.userInfo && getWorker.userInfo.perHourRate? getWorker.userInfo.perHourRate: undefined
               });
                 await newWorkDetail.save();
             }
@@ -1311,7 +1313,7 @@ getDashboardData: async (req, res) => {
         companyParam= {'userInfo.companyId': companyId}
       }
       if(req.query.userType && req.query.userType==='WORKER'){
-        roleRestriction.push('INSTANCE ADMIN')
+          roleRestriction.push('INSTANCE ADMIN','TOPADMIN', 'ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT' )
       }
       if(!req.query.userType){
         roleRestriction.push('WORKER')
@@ -1319,7 +1321,32 @@ getDashboardData: async (req, res) => {
 
       const restrictUser={'userInfo.roleName':{$nin:roleRestriction}}
       const users = await userModel.find({
-        $and: [ { deleted: false },restrictUser,companyParam]
+        $and: [ { deleted: false },restrictUser,companyParam,{isActive: true}]
+      });
+      return res.status(200).json({
+        success: true,
+        users,
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        success: false,
+        message: "User not found.",
+        error: err.message,
+      });
+    }
+  },
+  getAllWorker: async (req, res) => {
+    try {
+      let roleParam={'userInfo.roleName': 'WORKER'}
+      let companyId = req.setCompanyId
+      let companyParam={}
+      const roleName = req.user.userInfo.roleName
+      if(roleName && (roleName==='INSTANCE ADMIN' || roleName==='ADMIN'|| roleName==='ACCOUNTANT')){
+        companyParam= {'userInfo.companyId': companyId}
+      }
+      const users = await userModel.find({
+        $and: [ { deleted: false },companyParam,roleParam]
       });
       return res.status(200).json({
         success: true,
@@ -1390,6 +1417,38 @@ getDashboardData: async (req, res) => {
         message: "Updated successfully.",
         data:updatedUser
       });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({
+        success: false,
+        message: "Error while update user.",
+        error: err.message,
+      });
+    }
+  },
+  updateStatus: async (req, res) => {
+    try {
+
+      let user =  await userModel.findOne({_id:req.body.id});
+      if(!user){
+        return res.status(400).json({
+          success: false,
+          message: "User not found.",
+          error: err.message,
+        });
+      }
+      const updatedStaus= await userModel.findOneAndUpdate({_id:req.body.id},{isActive: req.body.isActive})
+      if(updatedStaus){
+        return res.status(200).json({
+          success: true,
+          message: "User status updated successfully.",
+        });
+      }else{
+        return res.status(200).json({
+          success: false,
+          message: "User status not updated.",
+        });
+      }
     } catch (err) {
       console.log(err);
       return res.status(500).json({
@@ -1495,21 +1554,40 @@ getDashboardData: async (req, res) => {
   },
   addWorkDetail: async(req, res, next)=>{
     try{
-      const newWorkDetail= new workDetailModel({
-        ...req.body
-      });
-      const newWorkDetailCreated = await newWorkDetail.save();
-      if(newWorkDetailCreated){
-        return res.status(200).json({
-          success: true,
-          message:'Success'
-        });
+        let condParm= {$and:[{dateOfWork:req.body.dateOfWork},{userId: req.body.userId}]}
+      const foundWorkDetail= await workDetailModel.findOne(condParm)
+      if(foundWorkDetail){
+           const updateWork = await workDetailModel.findOneAndUpdate(condParm, {...req.body})
+           if(updateWork){
+            return res.status(200).json({
+              success: true,
+              message:'Success'
+            });
+           }else{
+            return res.status(200).json({
+              success: false,
+              message:'Error, Please try again!'
+            });
+           }
+
       }else{
-        return res.status(200).json({
-          success: false,
-          message:'Error, Please try again!'
+        const newWorkDetail= new workDetailModel({
+          ...req.body
         });
+        const newWorkDetailCreated = await newWorkDetail.save();
+        if(newWorkDetailCreated){
+          return res.status(200).json({
+            success: true,
+            message:'Success'
+          });
+        }else{
+          return res.status(200).json({
+            success: false,
+            message:'Error, Please try again!'
+          });
+        }
       }
+
     }catch(err){
       return res.status(400).json({
         success: false,

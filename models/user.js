@@ -70,6 +70,9 @@ const userSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    perHourRate:{
+      type:Number
+    },
     address:{
       type:String,
       trim: true,
